@@ -22,7 +22,7 @@ class BufferFactory
     end
   end
 
-  def set_buffer_contents(buffer, cursor,data, created_at)
+  def set_buffer_contents(buffer, cursor,data, created_at = Time.now)
     buffer.created_at = created_at
     buffer.modify(cursor, 0..-1) do |_|
       lines_from_data(data)
