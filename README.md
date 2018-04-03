@@ -3,6 +3,24 @@
 
 An experimental editor written in Ruby.
 
+The goal of Re is to remain tiny, pure-Ruby, and
+to leverage existing Ruby projects as much as
+possible. Where it makes sense I'll split code
+out into separate gems.
+
+Suggestions/pull requests are welcome, but note that
+this is very much a quick and dirty work in progress,
+that I *use* for most of my editing, and that in
+many respects reflects very personal choices, so
+if you want to take things in a different direction
+I might not take your code - talk to me first if 
+unsure (vidar@hokstad.com).
+
+Ideally I'll turn this into mostly a set of gems
+providing generic editor-related functionality,
+and this project itself will be mostly tying other
+gems together.
+
 Re uses DRb to implement a primitive client-server
 model (primitive as there are far more notifications 
 than needed and far more redraws than needed as a 
@@ -17,9 +35,11 @@ Emacs style frame splits (alt+2/alt+3) are currently
 hardcoded to expect i3wm to open new view processes
 in new windows
 
-Undo/Redo is buggy.
+Undo/Redo is buggy (it breaks if the modification
+deleted lines, at least). Needs test cases and a
+rework.
 
-Note that the code is horribly ugly and in need of
+Note that lots of the code is horribly ugly and in need of
 refactoring. 
 
 ## Keyboard shortcuts
