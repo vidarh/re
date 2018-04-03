@@ -67,8 +67,9 @@ class Editor
     Dir.chdir(File.dirname(@filename))
     choose_mode
 
-    if Time.at(@buffer.created_at.to_i) < File.mtime(@filename)
-      prompt("File changed on disk (created_at=#{@buffer.created_at}, mtime=#{File.mtime(@filename)}. Reload? (y/n)")
+    mtime = File.mtime(@filename) rescue Time.at(0)
+    if Time.at(@buffer.created_at.to_i) < mtime
+      prompt("File changed on disk (created_at=#{@buffer.created_at}, mtime=#{mtime}. Reload? (y/n)")
       loop do
         char = @ctrl.read_char
         if char
