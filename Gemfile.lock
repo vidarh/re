@@ -1,0 +1,29 @@
+PATH
+  remote: ../ansiterm
+  specs:
+    ansiterm (0.3.1)
+
+PATH
+  remote: ../file_writer
+  specs:
+    file_writer (0.1.2)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    object_tracker (2.1.1)
+    rb-readline (0.5.5)
+    rouge (3.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  ansiterm!
+  file_writer!
+  object_tracker (~> 2.1)
+  rb-readline
+  rouge
+
+BUNDLED WITH
+   1.13.6
