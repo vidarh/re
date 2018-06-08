@@ -2,7 +2,7 @@
 INDENT=2
 
 $ilex = Rouge::Lexers::Ruby.new
-$block_start = Set[*%w{if else elsif while class def rescue begin do}]
+$block_start = Set[*%w{if else elsif while class module def rescue begin do}]
 
 def is_block_start(fp)
   return false if !fp
