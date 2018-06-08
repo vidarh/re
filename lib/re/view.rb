@@ -50,7 +50,7 @@ class View
 
     status = status[0..w-1] if status.length >= w
     print "#{ANSI.sgr(47,30)}#{status}#{ANSI.sgr(49,37,:bold)}"
-    print ANSI.sgr(:normal)+(@editor.message+" ")+ANSI.el
+    print ANSI.sgr(:normal)+(@editor.message[0.. w-2]+" ")+ANSI.el
   end
 
   def render_line(str)
@@ -141,7 +141,7 @@ class View
     max = @top+h
     y = 0
     Array(buffer.lines(@top...max)).each_with_index do |line,cnt|
-      line = line.gsub("\t", "   ")
+      line = line.gsub("\t", "...")
 
       line = AnsiTerm::String.new(render_line(line))
       line = render_marks(line, @top+y)
