@@ -258,11 +258,21 @@ class Editor
     end
 
     def split_vertical
-       system("i3-msg 'split vertical; exec term e --buffer #{@buffer.buffer_id}'")
+      case ENV["DESKTOP_SESSION"]
+      when "bspwm"
+        system("sh -c 'bspc node -p south ; exec term e --buffer #{@buffer.buffer_id}' &")
+      else
+        system("i3-msg 'split vertical; exec term e --buffer #{@buffer.buffer_id}'")
+      end
     end
 
     def split_horizontal
-       system("i3-msg 'split horizontal; exec term e --buffer #{@buffer.buffer_id}'")
+      case ENV["DESKTOP_SESSION"]
+      when "bspwm"
+        system("sh -c 'bspc node -p east ; exec term e --buffer #{@buffer.buffer_id}' &")
+      else
+        system("i3-msg 'split horizontal; exec term e --buffer #{@buffer.buffer_id}'")
+      end
     end
 
     def set_mode(m)
