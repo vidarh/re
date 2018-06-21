@@ -1,3 +1,5 @@
+require 'drb/observer'
+
 class Buffer
 
   include DRb::DRbObservable
