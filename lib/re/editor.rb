@@ -88,7 +88,7 @@ class Editor
 
   def open(filename = nil)
     filename ||= gets("Filename: ")
-
+    filename = filename.strip
     @filename,row = filename.split(":")
     data      = @factory.read_file_data(@filename)
 
