@@ -1,6 +1,9 @@
 
 
 class Controller
+  class COMBINER
+  end
+
   @@keybindings = {
     "\cq"   => :quit,
     "\cs"   => :save,
@@ -10,6 +13,7 @@ class Controller
     "\e[B"  => :down,
     "\e[C"  => :right,
     "\e[D"  => :left,
+    "\e[Z"  => :insert_tab,
     "\ck"   => :kill,
     "\cy"   => :yank,
     "\e[6~" => :page_down,
@@ -19,7 +23,7 @@ class Controller
     "\cu"   => :delete_before,
     "\c_"   => :history_undo,
 #    "\cr"	=> :history_redo,
-    "\f"    => :refresh,
+    "\f"    => :reset_screen,
     "\r"    => :enter,
     "\t"    => :indent,
     "\e2"   => :split_vertical,
@@ -35,7 +39,13 @@ class Controller
     "\177"  => :backspace,
     "\cd"   => :delete,
     "\e[P"  => :delete,
-    "\cR"   => :reload
+    "\cR"   => :reload,
+    "\cz"   => :suspend,
+
+    "\cx"   => COMBINER,
+    "\cxb"   => :switch_buffer,
+    "\cxl"   => -> { o=$editor.view.opts; o[:show_lineno] = !o[:show_lineno]; $editor.reset_screen },
+    "\cxp" => -> { puts ANSI.cls; binding.pry; $editor.reset_screen }
   }
 
   def initialize(target)
@@ -44,7 +54,7 @@ class Controller
 
   def read_char
     IO.console.raw do
-      return if !IO.select([$stdin],nil,nil, 0.01)
+      return if !IO.select([$stdin],nil,nil, 1)
 
       char = $stdin.getc
 
@@ -66,10 +76,13 @@ class Controller
     end
   end
 
-  def handle_input
+  def handle_input(prefix="")
     char = read_char
-    command(char) if char
-    return char  
+    if char
+      command(prefix+char) 
+      return prefix+char
+    end
+    nil
   end
 
   def command(char)
@@ -79,9 +92,17 @@ class Controller
     end
 
     if c
+      if c == COMBINER
+        return handle_input(char)
+      end
+
       @lastcmd = c
       @target.instance_eval do
-        send(*Array(c))
+        if c.is_a?(Proc)
+          c.call
+        else
+          send(*Array(c))
+        end
       end
     end
   end

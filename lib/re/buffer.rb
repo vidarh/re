@@ -12,7 +12,7 @@ class Buffer
     @name = name
     @history = History.new
     @lines   = lines
-    @created_at = created_at
+    @created_at = created_at.kind_of?(Numeric) ?  Time.at(created_at) : DateTime.parse(created_at) 
   end
 
   def as_json(options = { })
@@ -96,7 +96,9 @@ class Buffer
   end
 
   def modify(cursor, rowrange)
-    new_lines = yield(@lines[rowrange].dup)
+    lines = @lines[rowrange].dup
+    lines ||= ""
+    new_lines = yield(lines)
     store_snapshot(cursor, rowrange, true)
     @lines[rowrange] = new_lines
     STDERR.puts "Notifying observers"

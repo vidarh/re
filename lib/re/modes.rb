@@ -1,34 +1,20 @@
-# = Foo
+
+require_relative 'highlighter'
+require_relative 'markdownsyntax'
+
+# # RougeMode #
+#
+# A very basic default renderer for anything that has a Rouge lexer
+#
+# This is too simplistic: We want to not have to lex an entire file at
+# once. _Most_ of the time this works fine. The big challenge is 
+# multiline blocks, such as inlined code, which require us to keep
+# state. Ideally we'd probably wrap Rouge with a wrapper using callcc 
+# or something to let it parse line by line, or we pass the entire page
+# to Rouge in one go, and postprocess the full page that way. Needs
+# testing
 #
 #
-class Highlighter
-  def wrap_match(pat, code, line)
-    m = line.split(pat)
-    Array(m).each_slice(2).collect do |text, tok|
-      [text, code, tok, "\e[39;49m"]
-    end.flatten.compact.join
-  end
-
-  def self.fg(col,bold=false)
-    "\e[3#{col}#{bold ?";1":""}m"
-  end
-  def self.bg(col, bold=false)
-    "\e[4#{col}#{bold ?";1":""}m"
-  end
-
-  def normal; "\e[39;49m"; end
-  def bg(col,bold=false); self.class.bg(col,bold); end
-  def fg(col,bold=false); self.class.fg(col,bold); end
-
-
-  FORMATTER = Rouge::Formatters::Terminal256.new(Rouge::Themes::ThankfulEyes.new)
-
-  def format(lex)
-    FORMATTER.format(lex)
-  end
-
-end
-
 class RougeMode < Highlighter
   def to_s 
     @lexer.name.split("::")[-1]
@@ -43,14 +29,27 @@ class RougeMode < Highlighter
   end
 end
 
+
 class RubyHighlighter < Highlighter
   @@lexer = Rouge::Lexers::Ruby.new
+  @@markdown = MarkdownSyntax.new
 
   def to_s; "Ruby"; end
 
   def call(str)
     lex = @@lexer.lex(str).collect do |t,text|
-      [t,text]
+      if t.qualname == "Comment.Single"
+        data = text.match(/([^#]*)#( ?)(.*)/)
+        tail = AnsiTerm::String.new("\e[37m"+data[2]+@@markdown.call(data[3]))
+        str  = "#{data[1]}\e[0;34m\u2503"
+        if tail.length < 71
+          tail << " "*(71-tail.length)
+        end
+        tail.set_attr(0..tail.length-1, AnsiTerm::Attr.new(bgcol: "48;2;10;10;32"))
+        [t,(str+tail.to_str)] #+AnsiTerm::String.new("\e[37m\e[49m\u2503").to_str)]
+      else
+        [t,text]
+      end
     end
     # Highlight whitespace only lines
     if lex.length == 1 && lex[0][1].strip.empty?
@@ -61,87 +60,8 @@ class RubyHighlighter < Highlighter
   end
 end
 
-# FIXME: Decouple the lexing and formatting / theme
-class MarkdownSyntax < Highlighter
-  def to_s; "Markdown"; end
 
-  @@lexer = Rouge::Lexers::Markdown.new
-  @@formatter = Rouge::Formatters::Terminal256.new(Rouge::Themes::ThankfulEyes.new)
 
-  PRI = {
-    "A" => fg(1)+"(A)",
-    "B" => fg(1,:B)+"(B)",
-    "C" => fg(3)+"(C)",
-    "D" => fg(2)+"(D)",
-    "E" => fg(2)+"(E)",
-    "Q" => fg(4)+"(Q)"
-  }
-
-  def strikethrough
-    "\e[9m"
-  end
-
-  def is_heading(t)
-    t.qualname == "Generic.Heading" ||
-      t.qualname == "Generic.Subheading"
-  end
-
-  def heading_level str
-    str.match(/\A#+/)[0].length rescue 0
-  end
-
-  def handle_heading(t,r)
-    return r if !is_heading(t)
-    level = heading_level(r)
-    r = r.gsub("#","\u25B0")
-
-    case level
-    when 1
-      bg(4)+fg(7,:bold)+r
-    when 2
-      fg(1)+r
-    when 4
-      fg(2)+r
-    else
-      r
-    end
-  end
-
-  def call(str)
-    lex = @@lexer.lex(str)
-    strike = false
-    lex = lex.collect do |t,r|
-
-      if strike
-        r = strikethrough + r
-      end
-
-      r = handle_heading(t,r)
-
-      if r[0..1] == "**"
-        strike = true
-      end
-
-      if m = r.split(/(\([A-Z]\))/)
-        r = m.collect do |s|
-          if s.length == 3 && s[0] == "(" && s[2] == ")" && PRI[s[1]]
-            "#{PRI[s[1]]}\e[0m"
-          else
-            s
-          end
-        end.join
-      end
-
-      r = wrap_match(/(\@[a-zA-Z]+)/, fg("5"), r)
-      r = wrap_match(/(\@[0-9:]+[a|p]?m?)/, fg("7")+bg("5"), r)
-      r = wrap_match(/(\+[a-zA-Z]+)/, fg("0")+bg("3"), r)
-
-      [t,r]
-    end
-
-    format(lex)
-  end
-end
 
 class BufferList
   def to_s
@@ -167,21 +87,34 @@ class Modes
     "Gemfile" => RubyHighlighter.new
   }
 
+  def self.find_fancy(name)
+    case name.downcase
+    when "ruby"
+      return RubyHighlighter.new
+    when "markdown"
+      return MarkdownSyntax.new
+    else
+      l = Rouge::Lexer.find_fancy(name)
+      l ? RougeMode.new(l) : nil
+    end
+  end
+
   def self.choose(filename: nil, first_line:)
 
     mode = nil
     first_line ||= ""
-    if m = first_line.match(/\-\*\- *mode: *([^ \t]*) *\-\*\-/)
-      mode = @@alist_mode[m[1]]
-    end
-    if !mode
-      if m = first_line.match(/^\#\!((\/[a-zA-Z0-9]+)+)$/)
-        mode = @@alist_interpreters[m[1]]
-      end
-    end
+    #if m = first_line.match(/\-\*\- *mode: *([^ \t]*) *\-\*\-/)
+    #  mode = @@alist_mode[m[1]]
+    #  return mode if mode
+    #end
+    #if m = first_line.match(/^\#\!((\/[a-zA-Z0-9]+)+)$/)
+    #  mode = @@alist_interpreters[m[1]]
+    #  return mode if mode
+    #end
     if filename
       mode   = @@alist_ext[File.extname(filename)] ||
                @@alist_ext[File.basename(filename)]
+      return mode if mode
     end
 
     if !mode

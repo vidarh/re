@@ -34,7 +34,7 @@ if __FILE__ == $0
 
   if ARGV.first == "--server"
 
-    f = Factory.new
+    $factory = f = Factory.new
     DRb.start_service($uri, f)
 
     Thread.abort_on_exception = true
@@ -54,14 +54,27 @@ if __FILE__ == $0
     first = true
     loop do
       begin
-        f = DRbObject.new_with_uri($uri)
+        $factory = f = DRbObject.new_with_uri($uri)
+
+        at_exit do
+          profile = RubyProf.stop
+          STDERR.puts "Writing profile"
+          File.open(File.expand_path("~/.re-profile.html"),"w") do |f|
+            printer = RubyProf::CallStackPrinter.new(profile)
+            printer.print(f, {})
+          end
+        end
+
+        RubyProf.start rescue nil
 
         if ARGV[0] == "--list-buffers"
           puts f.list_buffers
         elsif ARGV[0] == "--buffer"
-          Editor.new(buffer: f.new_buffer(ARGV[1].to_i,""), factory: f).run
+          $editor =Editor.new(buffer: f.new_buffer(ARGV[1].to_i,""), factory: f)
+          $editor.run
         else
-          Editor.new(filename: ARGV[0], factory: f).run
+          $editor = Editor.new(filename: ARGV[0], factory: f)
+          $editor.run
         end
         break
       rescue DRb::DRbConnError => e
@@ -74,6 +87,11 @@ if __FILE__ == $0
         cmd = ["ruby",__FILE__,"--server", "2>/dev/null", ">/dev/null","&"].join(" ")
         p cmd
         system(cmd)
+      rescue SystemExit
+        raise
+      rescue Exception => e
+        puts ANSI.cls
+        binding.pry
       end
     end
   end

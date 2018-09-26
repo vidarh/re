@@ -36,6 +36,10 @@ class BufferFactory
     set_buffer_contents(buffer,cursor,data, Time.now)
   end
 
+  def get_buffer(buf)
+    @server.new_buffer(buf.to_i, "")
+  end
+
   def open(filename, data = "\n", created_at = Time.at(0))
     base = File.basename(filename)
 

@@ -1,4 +1,3 @@
-
 class Cursor
   attr_reader :row, :col
 
@@ -20,17 +19,10 @@ class Cursor
   end
 
   def right(buffer, offset = 1)
-    return Cursor.new(row, col + offset).clamp(buffer) unless end_of_line?(buffer)
-    return self if final_line?(buffer)
-    Cursor.new(row + 1, 0)
-  end
-
-  def left(buffer)
-    return Cursor.new(row, col - 1) if col > 0
-
-    return self if row == 0
-
-    Cursor.new(row - 1, buffer.line_length(row - 1))
+    buffer.right(self,offset)
+    #return Cursor.new(row, col + offset).clamp(buffer) unless end_of_line?(buffer)
+    #return self if final_line?(buffer)
+    #Cursor.new(row + 1, 0)
   end
 
   def clamp(buffer)

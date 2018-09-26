@@ -2,7 +2,8 @@ require 'readline'
 require_relative 'bufferfactory'
 
 class Editor
-  attr_reader :cursor, :buffer, :lastchar, :message, :mode, :search, :mark
+  attr_reader :cursor, :buffer, :lastchar, :message, :mode, :search, :mark, :view
+  attr_writer :message
 
   def open_buffer(filename,data)
     @line_sep = data["\r\n"] || "\n" # FIXME: Should be property of Buffer
@@ -20,7 +21,7 @@ class Editor
     choose_mode
 
     mtime = File.mtime(@filename) rescue Time.at(0)
-    if Time.at(@buffer.created_at.to_i) < mtime
+    if @buffer.created_at.to_i < mtime.to_i
       prompt("File changed on disk (created_at=#{@buffer.created_at}, mtime=#{mtime}. Reload? (y/n)")
       loop do
         char = @ctrl.read_char
@@ -39,7 +40,8 @@ class Editor
   end
 
   def open(filename = nil)
-    filename ||= gets("Filename: ")
+    filename ||= `filesel` #gets("Filename: ")
+    return if filename == "" || filename.nil?
     filename = filename.strip
     @filename,row = filename.split(":")
     data      = @factory.read_file_data(@filename)
@@ -61,6 +63,7 @@ class Editor
     @factory  = BufferFactory.new(factory)
 
     @view     = View.new(self)
+    @model    = ViewModel.new(self)
     @ctrl     = Controller.new(self)
 
     @buffer   = buffer
@@ -114,8 +117,6 @@ class Editor
     end
   end
 
-  private
-
   attr_reader :blank_buffer, :line_sep, :filename
 
   def render
@@ -130,7 +131,7 @@ class Editor
   end
 
  def prompt(str = "")
-   @view.move(@view.height+1,0)
+   puts ANSI.move_cursor(@view.height-2,0)
    print ANSI.el
    $stdout.print str
    $stdout.flush
@@ -192,6 +193,15 @@ class Editor
         end
         update.call      
       end
+    end
+  end
+
+  def switch_buffer
+    sel =`select-buffer 2>/dev/null`
+    return if sel.empty?
+    if b = @factory.get_buffer(sel.to_i)
+      @buffer = b
+      init_buffer
     end
   end
 
@@ -263,13 +273,13 @@ class Editor
           enter(no_indent: true)
         end
         buffer.insert(cursor, line)
-        @cursor = @cursor.right(buffer, line.size)
+        right(line.size)
         first = false
       end
     end
 
     def insert_tab
-      2.times { insert_char(" ") }
+      insert_char("\t")
     end
 
     def get_indent(row)
@@ -315,6 +325,7 @@ class Editor
 
     def quit
       reset_screen
+      puts ANSI.cls
       exit
     end
 
@@ -336,12 +347,12 @@ class Editor
       @cursor = cursor.down(buffer,off)
     end
 
-    def right
-      @cursor = cursor.right(buffer)
+    def right(offset=1)
+      @cursor = @model.right(offset)
     end
 
     def left
-      @cursor = cursor.left(buffer)
+      @cursor = @model.left
     end
 
     def join_line
@@ -355,10 +366,10 @@ class Editor
       if cursor.col == 0
         cursor_left = buffer.lines(cursor.row).size + 1
         buffer.join_lines(cursor,-1)
-        cursor_left.times { @cursor = cursor.left(buffer) }
+        cursor_left.times { left }
       else
         buffer.delete(cursor, cursor.col - 1)
-        @cursor = cursor.left(buffer)
+        left
       end
     end
 
@@ -373,7 +384,8 @@ class Editor
     end
 
     def data
-      data = buffer.lines(0..-1).join(line_sep).chomp(line_sep)
+      data = buffer.lines(0..-1).join(line_sep).chomp(line_sep) || []
+      line_sep ||= "\n"
       data << line_sep unless data.empty?
       data
     end
@@ -385,6 +397,7 @@ class Editor
         @message = "#{filename} saved"
       rescue Exception => e
         @message = "Error saving #{filename}: #{e.message}"
+        @message = e.backtrace.join(",")
       end
     end
 
@@ -406,7 +419,8 @@ class Editor
 
     def insert_char(char)
       buffer.insert(cursor, char)
-      @cursor = cursor.right(buffer)
+      @view.update_line(cursor.row)
+      right
     end
 
     def line_home
@@ -442,4 +456,15 @@ class Editor
       @do_refresh = true
     end
 
+    def suspend
+      begin
+        Timeout.timeout(0.2) {
+          @view.reset_screen
+          puts "FIXME: Buggy suspen. Ctrl+z once more to suspend."
+          Process.kill("STOP", Process.pid)
+        }
+      rescue Timeout::Error
+        refresh
+      end
+    end
   end

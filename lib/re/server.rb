@@ -49,7 +49,7 @@ class Factory
 
   def store_buffers
     puts "Storing buffers"
-    FileWriter.write(@bufstore,JSON.generate(buffers))
+    FileWriter.write(@bufstore,JSON.generate(buffers.map(&:as_json)))
     puts "Stored."
   end
 end
