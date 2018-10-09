@@ -1,7 +1,7 @@
 PATH
   remote: ../ansiterm
   specs:
-    ansiterm (0.3.1)
+    ansiterm (0.3.2)
 
 PATH
   remote: ../file_writer
