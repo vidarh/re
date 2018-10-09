@@ -33,13 +33,15 @@ require_relative 'lib/re/server'
 if __FILE__ == $0
 
   opts = Slop.parse do |o|
-    o.bool    '--server', 'Start as a server. Usually started automatically'
-    o.integer '--buffer', 'Open buffer with the given number'
-    o.bool    '--list-buffers', 'List buffers'
-    o.bool    '--local',  'Run without server (mainly intended for testing)'
-    o.bool    '--profile', 'Enable Rubyprof profiling'
-    o.bool    '--intercept',  'Log operations to the server to ~/.re-oplog-[client pid].txt'
     o.bool    '-h', '--help', "This help"
+    o.bool    '--list-buffers', 'List buffers'
+    o.integer '--buffer', 'Open buffer with the given number'
+    o.bool    '--server', 'Start as a server. Usually started automatically'
+    o.separator ''
+    o.separator 'debug options:'
+    o.bool    '--local',  'Run without server'
+    o.bool    '--profile', 'Enable Rubyprof profiling dumped to ~/.re-profile.html on exit'
+    o.bool    '--intercept',  'Log operations to the server to ~/.re-oplog-[client pid].txt'
   end
 
   if opts.help?
