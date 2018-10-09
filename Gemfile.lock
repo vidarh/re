@@ -21,6 +21,7 @@ GEM
     rb-readline (0.5.5)
     rouge (3.1.1)
     ruby-prof (0.17.0)
+    slop (4.6.2)
 
 PLATFORMS
   ruby
@@ -34,6 +35,7 @@ DEPENDENCIES
   rb-readline
   rouge
   ruby-prof
+  slop
 
 BUNDLED WITH
    1.16.2

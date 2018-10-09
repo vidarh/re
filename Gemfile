@@ -4,7 +4,7 @@ source "https://rubygems.org"
 gem "kramdown"
 gem "rouge"
 gem "rb-readline"
-
+gem 'slop'
 gem 'object_tracker', '~> 2.1'
 
 gem "file_writer", path: "../file_writer"

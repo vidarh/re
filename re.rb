@@ -32,7 +32,20 @@ require_relative 'lib/re/server'
 
 if __FILE__ == $0
 
-  if ARGV.first == "--server"
+  opts = Slop.parse do |o|
+    o.bool    '--server', 'Start as a server. Usually started automatically'
+    o.integer '--buffer', 'Open buffer with the given number'
+    o.bool    '--list-buffers', 'List buffers'
+    o.bool    '--local',  'Run without server'
+    o.bool    '-h', '--help', "This help"
+  end
+
+  if opts.help?
+    puts opts
+    exit(0)
+  end
+
+  if opts.server?
 
     $factory = f = Factory.new
     DRb.start_service($uri, f)
@@ -49,50 +62,52 @@ if __FILE__ == $0
 
     # Wait for the drb server thread to finish before exiting.
     DRb.thread.join
-  else
-    DRb.start_service
-    first = true
-    loop do
-      begin
-        $factory = f = DRbObject.new_with_uri($uri)
+    exit(0)
+  end
 
-        at_exit do
-          profile = RubyProf.stop
-          STDERR.puts "Writing profile"
-          File.open(File.expand_path("~/.re-profile.html"),"w") do |f|
-            printer = RubyProf::CallStackPrinter.new(profile)
-            printer.print(f, {})
-          end
-        end
+  DRb.start_service if !opts.local?
 
-        RubyProf.start rescue nil
+  at_exit do
+    profile = RubyProf.stop
+    STDERR.puts "Writing profile"
+    File.open(File.expand_path("~/.re-profile.html"),"w") do |f|
+      printer = RubyProf::CallStackPrinter.new(profile)
+      printer.print(f, {})
+    end
+  end
+  RubyProf.start rescue nil
 
-        if ARGV[0] == "--list-buffers"
-          puts f.list_buffers
-        elsif ARGV[0] == "--buffer"
-          $editor =Editor.new(buffer: f.new_buffer(ARGV[1].to_i,""), factory: f)
-          $editor.run
-        else
-          $editor = Editor.new(filename: ARGV[0], factory: f)
-          $editor.run
-        end
-        break
-      rescue DRb::DRbConnError => e
-        p e
-        if !first
-          sleep(0.1)
-          STDERR.puts "Failed to open connection to server. Trying to start"
-        end
-        first = false
-        cmd = ["ruby",__FILE__,"--server", "2>/dev/null", ">/dev/null","&"].join(" ")
-        p cmd
-        system(cmd)
-      rescue SystemExit
-        raise
-      rescue Exception => e
-        puts ANSI.cls
-        binding.pry
+
+  first = true
+  loop do
+    begin
+      $factory = f = opts.local? ? Factory.new : DRbObject.new_with_uri($uri)
+
+      if opts.list_buffers?
+        puts f.list_buffers
+      elsif opts[:buffer]
+        $editor =Editor.new(buffer: f.new_buffer(opts[:buffer],""), factory: f)
+        $editor.run
+      else
+        $editor = Editor.new(filename: opts.arguments[0], factory: f)
+        $editor.run
       end
+      break
+    rescue DRb::DRbConnError => e
+      p e
+      if !first
+        sleep(0.1)
+        STDERR.puts "Failed to open connection to server. Trying to start"
+      end
+      first = false
+      cmd = ["ruby",__FILE__,"--server", "2>/dev/null", ">/dev/null","&"].join(" ")
+      p cmd
+      system(cmd)
+    rescue SystemExit
+      raise
+    rescue Exception => e
+      puts ANSI.cls
+      binding.pry
     end
   end
 end
