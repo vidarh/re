@@ -36,7 +36,7 @@ if __FILE__ == $0
     o.bool    '--server', 'Start as a server. Usually started automatically'
     o.integer '--buffer', 'Open buffer with the given number'
     o.bool    '--list-buffers', 'List buffers'
-    o.bool    '--local',  'Run without server'
+    o.bool    '--local',  'Run without server (mainly intended for testing)'
     o.bool    '-h', '--help', "This help"
   end
 
