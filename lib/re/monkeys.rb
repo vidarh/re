@@ -7,3 +7,11 @@ unless Comparable.instance_methods.include?(:clamp)
     end
   end
 end
+
+require 'date'
+
+class DateTime
+  def to_i
+    to_time.to_i
+  end
+end
