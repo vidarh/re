@@ -111,6 +111,8 @@ class Buffer
     cursor
   end
 
+  private
+
   def store_snapshot(cursor, rowrange, advance = true)
     @history.save([cursor, rowrange, @lines[rowrange]], advance)
   end
@@ -121,9 +123,7 @@ class Buffer
     new_lines = yield(lines)
     store_snapshot(cursor, rowrange, true)
     @lines[rowrange] = new_lines
-    STDERR.puts "Notifying observers"
     changed
-    p @observer_peers
     notify_observers(self)
   end
 end

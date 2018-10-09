@@ -248,9 +248,7 @@ class Editor
     def kill
       @yank_cursor ||= Cursor.new(0,0)
       if @yank_mark != cursor
-        @yank_buffer.modify(@yank_cursor, 0..-1) do
-          [""]
-        end
+        @yank_buffer.replace_contents(cursor,"")
         @yank_cursor = Cursor.new(0,0)
       end
       if @cursor.col >= @buffer.lines(@cursor.row).length
@@ -304,9 +302,7 @@ class Editor
     def indent
       row = @cursor.row
       pos = determine_indent(row)
-      @buffer.modify(cursor,row) do |line|
-        (" "*pos)+line.lstrip
-      end
+      @buffer.indent(cursor,row,pos)
       @cursor = Cursor.new(row,pos).clamp(@buffer)
     end
 
