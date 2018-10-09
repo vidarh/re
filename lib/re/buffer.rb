@@ -55,6 +55,10 @@ class Buffer
     @lines[row]&.size || 0
   end
 
+  def replace_contents(cursor,new_contents)
+    modify(cursor, 0..-1) {|l| new_contents }
+  end
+
   def insert(cursor, char)
     modify(cursor, cursor.row) {|l| l.insert(cursor.col,char) }
   end
@@ -73,6 +77,12 @@ class Buffer
   def join_lines(cursor,offset=0)
     row=cursor.row+offset
     modify(cursor, row..row+1) {|l| l.join }
+  end
+
+  def indent(cursor, row, pos)
+    modify(cursor,row) do |line|
+      (" "*pos)+line.lstrip
+    end
   end
 
   def lines(r)
