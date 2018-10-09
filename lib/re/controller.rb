@@ -52,9 +52,9 @@ class Controller
     @target = target
   end
 
-  def read_char
+  def read_char(timeout=0.1)
     IO.console.raw do
-      return if !IO.select([$stdin],nil,nil, 1)
+      return if !IO.select([$stdin],nil,nil, timeout)
 
       char = $stdin.getc
 
@@ -76,8 +76,8 @@ class Controller
     end
   end
 
-  def handle_input(prefix="")
-    char = read_char
+  def handle_input(prefix="",timeout=0.1)
+    char = read_char(timeout)
     if char
       command(prefix+char) 
       return prefix+char
@@ -93,7 +93,7 @@ class Controller
 
     if c
       if c == COMBINER
-        return handle_input(char)
+        return handle_input(char,2)
       end
 
       @lastcmd = c
