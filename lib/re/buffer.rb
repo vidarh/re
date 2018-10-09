@@ -1,4 +1,5 @@
 require 'drb/observer'
+require 'date'
 
 class Buffer
 
@@ -12,7 +13,16 @@ class Buffer
     @name = name
     @history = History.new
     @lines   = lines
-    @created_at = created_at.kind_of?(Numeric) ?  Time.at(created_at) : DateTime.parse(created_at) 
+    @created_at = case created_at
+                  when Numeric
+                    Time.at(created_at)
+                  when Time
+                    created_at
+                  when String
+                    DateTime.parse(created_at)
+                  else
+                    raise "Unknown time format: #{created_at}"!!!
+                  end
   end
 
   def as_json(options = { })
