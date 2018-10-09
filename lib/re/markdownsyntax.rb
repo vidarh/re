@@ -28,7 +28,17 @@
 #     end
 # ~~~
 #
-#    (Any Rouge supported language should work here)
+# FIXME Adding "~"+"~"+"~" anywhere on the line breaks things, and it doesn't
+# properly terminae the inline code mode. Or we'd demonstrate c mode 
+# here:
+#
+# void foo(int blah) {
+#   if (a == c) {
+#   }
+# }
+# ~~~
+#
+#    (Any Rouge supported language should work here^^^)
 #
 #  * Indented code blocks:
 #     This is indented code
@@ -58,6 +68,8 @@
 # * **DONE** FIXME Underline using *underline* should not continue to end of line
 # * **DONE** FIXME Strikethrough should not continue to striketrough for trailing
 #   space on the line
+# * FIXME auto-indenting in comment block
+# * FIXME auto-insert '#' on new line in comment block
 #
 class MarkdownSyntax < Highlighter
   def to_s; "Markdown"; end
