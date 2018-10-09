@@ -37,6 +37,8 @@ if __FILE__ == $0
     o.integer '--buffer', 'Open buffer with the given number'
     o.bool    '--list-buffers', 'List buffers'
     o.bool    '--local',  'Run without server (mainly intended for testing)'
+    o.bool    '--profile', 'Enable Rubyprof profiling'
+    o.bool    '--intercept',  'Log operations to the server to ~/.re-oplog-[client pid].txt'
     o.bool    '-h', '--help', "This help"
   end
 
@@ -67,16 +69,17 @@ if __FILE__ == $0
 
   DRb.start_service if !opts.local?
 
-  at_exit do
-    profile = RubyProf.stop
-    STDERR.puts "Writing profile"
-    File.open(File.expand_path("~/.re-profile.html"),"w") do |f|
-      printer = RubyProf::CallStackPrinter.new(profile)
-      printer.print(f, {})
+  if opts.profile?
+    at_exit do
+      profile = RubyProf.stop
+      STDERR.puts "Writing profile"
+      File.open(File.expand_path("~/.re-profile.html"),"w") do |f|
+        printer = RubyProf::CallStackPrinter.new(profile)
+        printer.print(f, {})
+      end
     end
+    RubyProf.start rescue nil
   end
-  RubyProf.start rescue nil
-
 
   first = true
   loop do
@@ -86,10 +89,10 @@ if __FILE__ == $0
       if opts.list_buffers?
         puts f.list_buffers
       elsif opts[:buffer]
-        $editor =Editor.new(buffer: f.new_buffer(opts[:buffer],""), factory: f)
+        $editor = Editor.new(buffer: f.new_buffer(opts[:buffer],""), factory: f, intercept: opts.intercept?)
         $editor.run
       else
-        $editor = Editor.new(filename: opts.arguments[0], factory: f)
+        $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?)
         $editor.run
       end
       break

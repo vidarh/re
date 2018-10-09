@@ -4,7 +4,11 @@ require_relative 'bufferfactory'
 # Temporary hack to replace DRB
 #
 class BufferIntercept
-  @@log = File.open(File.expand_path("~/.re-oplog-#{Process.pid}.txt"),"w")
+  @@log = nil
+
+  def log
+    @@log ||= File.open(File.expand_path("~/.re-oplog-#{Process.pid}.txt"),"w")
+  end
 
   def initialize(buffer)
     @buffer = buffer
@@ -12,21 +16,21 @@ class BufferIntercept
   end
 
   def method_missing(*args,&block)
-    @@log.puts(@name+"| "+args.inspect)
-    @@log.flush
+    log.puts(@name+"| "+args.inspect)
+    log.flush
     @buffer.send(*args,&block)
   end
 end
-
-$intercept = true
 
 class Editor
   attr_reader :cursor, :buffer, :lastchar, :message, :mode, :search, :mark, :view
   attr_writer :message
 
+  attr_accessor :intercept
+
   def possibly_intercept(buffer)
     return nil if buffer.nil?
-    $intercept ? BufferIntercept.new(buffer) : buffer
+    intercept ? BufferIntercept.new(buffer) : buffer
   end
 
   def open_buffer(filename,data)
@@ -82,7 +86,8 @@ class Editor
     end
   end
 
-  def initialize(filename: nil, factory: nil, buffer: nil)
+  def initialize(filename: nil, factory: nil, buffer: nil, intercept: false)
+    @intercept = intercept
     @filename = nil
     @factory  = BufferFactory.new(factory)
 
@@ -318,6 +323,7 @@ class Editor
     def determine_indent(row)
       off = -1
       until pos = get_indent(row+off) do; off -= 1; end
+      
       prev = @buffer.lines(row+off)
       cur  = @buffer.lines(row)
       calc_indent(pos, prev, cur)
