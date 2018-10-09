@@ -1,13 +1,37 @@
 require 'readline'
 require_relative 'bufferfactory'
 
+# Temporary hack to replace DRB
+#
+class BufferIntercept
+  @@log = File.open(File.expand_path("~/.re-oplog-#{Process.pid}.txt"),"w")
+
+  def initialize(buffer)
+    @buffer = buffer
+    @name   = buffer.name
+  end
+
+  def method_missing(*args,&block)
+    @@log.puts(@name+"| "+args.inspect)
+    @@log.flush
+    @buffer.send(*args,&block)
+  end
+end
+
+$intercept = true
+
 class Editor
   attr_reader :cursor, :buffer, :lastchar, :message, :mode, :search, :mark, :view
   attr_writer :message
 
+  def possibly_intercept(buffer)
+    return nil if buffer.nil?
+    $intercept ? BufferIntercept.new(buffer) : buffer
+  end
+
   def open_buffer(filename,data)
     @line_sep = data["\r\n"] || "\n" # FIXME: Should be property of Buffer
-    @buffer   = @factory.open(filename,data, Time.now)
+    @buffer   = possibly_intercept(@factory.open(filename,data, Time.now))
     init_buffer
   end
 
@@ -66,7 +90,7 @@ class Editor
     @model    = ViewModel.new(self)
     @ctrl     = Controller.new(self)
 
-    @buffer   = buffer
+    @buffer   = possibly_intercept(buffer)
     if @buffer
       init_buffer
     else

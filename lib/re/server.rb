@@ -8,6 +8,10 @@ class Editor
   include DRb::DRbUndumped
 end
 
+class TermBuffer
+  include DRb::DRbUndumped
+end
+
 require 'json'
 
 class Factory
