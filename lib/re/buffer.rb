@@ -21,7 +21,7 @@ class Buffer
                   when String
                     DateTime.parse(created_at)
                   else
-                    raise "Unknown time format: #{created_at}"!!!
+                    raise "Unknown time format: #{created_at}"
                   end
   end
 
