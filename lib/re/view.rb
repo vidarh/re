@@ -63,10 +63,10 @@ class View
     status = " #{pos} #{mode} "
     status = status[0..w-1] if status.length >= w
 
-    @out.move_cursor(w-status.length,0)
+    @out.move_cursor(w-status.length-1,0)
     print "#{ANSI.sgr(40,37)}#{status}#{ANSI.sgr(49,37,:bold)}"
     msg = @editor.message[0.. w-2].strip
-    @out.move_cursor(w-msg.size,h-1)
+    @out.move_cursor(w-msg.size-1,h-1)
     print ANSI.sgr(:normal)+ANSI.sgr(37,45)+msg
     @editor.message = ""
     status.size
