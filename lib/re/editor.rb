@@ -446,8 +446,8 @@ class Editor
     end
 
     def data
-      data = buffer.lines(0..-1).join(line_sep).chomp(line_sep) || []
       line_sep ||= "\n"
+      data = buffer.lines(0..-1).join(line_sep).chomp(line_sep) || []
       data << line_sep unless data.empty?
       data
     end
