@@ -133,7 +133,20 @@ class Editor
   end
 
   def choose_mode
-    @mode = Modes.choose(filename: @filename, first_line: @buffer.lines(0))
+    # Fragment to allow us to parse mode lines etc.
+    src = Array(@buffer.lines(0..4)).concat(Array(@buffer.lines(-5..-1)))
+    @mode = Modes.choose(filename: @filename, source: src)
+
+    src.each do |line|
+      if line.match(/ re: ([a-zA-Z:]+)/)
+        $1.split(":").each do |opt|
+          case opt
+          when "nolineno"
+            view.opts[:show_lineno] = false
+          end
+        end
+      end
+    end
   end
 
   def run
