@@ -84,6 +84,10 @@ class Editor
       @cursor  = @cursor.down(buffer,row)
       @message = "Starting at #{row}"
     end
+  rescue Errno::EISDIR
+    Dir.chdir(filename)
+    filename = nil
+    retry
   end
 
   def initialize(filename: nil, factory: nil, buffer: nil, intercept: false)
