@@ -190,6 +190,7 @@ class Editor
    while (row < max) && (line = buffer.lines(row))
      if i = line[col .. -1].index(@search)
        @cursor = Cursor.new(row,col+i)
+
        @do_refresh = true
        @mark = @cursor
        return true
@@ -200,9 +201,20 @@ class Editor
    false
  end
 
+ def goto_start
+   @cursor = Cursor.new(0,0).clamp(@buffer)
+   @do_refresh = true
+ end
+
  def find_next
    right
-   left if !find_forward
+   if find_forward
+     true
+   else
+     goto_start
+     @mark = @cursor
+     false
+   end
  end
 
   def find(str = nil)
@@ -228,8 +240,15 @@ class Editor
         elsif char == "\r"
           @message = "Search paused. To cont. press ^f; To cancel ^f + ^c"
           break
+        elsif char == "\ck"
+          @search = ""
         elsif char == "\cf"
-          find_next
+          if find_next
+          else
+            find_next
+            @message = "Wrapped around; ^f to restart search"
+            break
+          end
         elsif char =~ /\A[[:print:]]+\Z/
           @search += char
           find_forward
