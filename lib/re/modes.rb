@@ -1,66 +1,125 @@
-
-require_relative 'highlighter'
+require 'reality/gitattributes'
 require_relative 'markdownsyntax'
 
 # # RougeMode #
 #
-# A very basic default renderer for anything that has a Rouge lexer
+# We use Rogue for most syntax highlighting unless there's a very good
+# reason not to.
 #
-# This is too simplistic: We want to not have to lex an entire file at
-# once. _Most_ of the time this works fine. The big challenge is 
-# multiline blocks, such as inlined code, which require us to keep
-# state. Ideally we'd probably wrap Rouge with a wrapper using callcc 
-# or something to let it parse line by line, or we pass the entire page
-# to Rouge in one go, and postprocess the full page that way. Needs
-# testing
-#
-#
-class RougeMode < Highlighter
-  def to_s 
-    @lexer.name.split("::")[-1]
+class RougeMode
+  attr_reader :lexer, :formatter
+
+  def to_s
+    @lexer.tag
   end
 
-  def initialize(lexer)
+  def theme=(theme)
+    @themename = theme
+    @theme = Rouge::Theme.find(theme).new
+    @formatter = nil
+  end
+
+  def formatter
+    @formatter ||= ReFormatter.new(@theme)
+  end
+
+  def initialize(lexer,theme = "thankful_eyes")
     @lexer = lexer
+    if !lexer.is_a?(Rouge::LayeredLexer)
+      @lexer = Rouge::LayeredLexer.new(
+        {
+          lexer: @lexer,
+          sublexers: {"Text" => SpecialLexer.new}
+        }
+      )
+    end
+
+    self.theme = theme
   end
 
+  def format(l)
+    formatter.format(l||"")
+#  rescue Exception => e
+#    "ERROR: #{e.inspect}"
+  end
+
+  # FIXME: Making this callable is misleading
+  # as there's not just a single reasonable
+  # default operation
   def call(str)
-    format(@lexer.lex(str))
+    format(@lexer.lex(str||""))
+  end
+
+  def should_insert_prefix(c,prev)
+    return nil if @lexer.tag != "ruby"
+    return nil if !prev || prev[c] != '#'
+    return '#'
   end
 end
 
+# FIXME: Unify / generalize this and MyRuby
+class MyMarkdown < Rouge::LayeredLexer
+  attr_reader :lexer
 
-class RubyHighlighter < Highlighter
-  @@lexer = Rouge::Lexers::Ruby.new
-  @@markdown = MarkdownSyntax.new
+  @@md = Rouge::Lexer.find("markdown")
+  @@sp = SpecialLexer.new
 
-  def to_s; "Ruby"; end
+  def initialize(opts = {})
+    super(opts.merge({
+            lexer: @@md.new,
+            sublexers: {"Text" => @@sp}
+    }))
+  end
 
-  def call(str)
-    lex = @@lexer.lex(str).collect do |t,text|
-      if t.qualname == "Comment.Single"
-        data = text.match(/([^#]*)#( ?)(.*)/)
-        tail = AnsiTerm::String.new("\e[37m"+data[2]+@@markdown.call(data[3]))
-        str  = "#{data[1]}\e[0;34m\u2503"
-        if tail.length < 71
-          tail << " "*(71-tail.length)
-        end
-        tail.set_attr(0..tail.length-1, AnsiTerm::Attr.new(bgcol: "48;2;10;10;32"))
-        [t,(str+tail.to_str)] #+AnsiTerm::String.new("\e[37m\e[49m\u2503").to_str)]
-      else
-        [t,text]
+  tag 'markdown'
+  aliases(*@@md.aliases)
+  filenames(*@@md.filenames)
+end
+
+class MyRuby < Rouge::LayeredLexer
+  @@rb = Rouge::Lexer.find("ruby")
+  @@sp = SpecialLexer.new
+  @@md = Rouge::Lexer.find("markdown")
+
+  def initialize(opts = {})
+    @mf = ReFormatter.new(Rouge::Themes::ThankfulEyes.new)
+    @md = @@md.new
+
+    super({
+      lexer: @@rb.new,
+      sublexers: {"Text" => @@sp}
+    })
+
+    md = @md
+    mf = @mf
+    l = lambda do |t,text|
+      data = text.match(/([^#]*)#( ?)(.*)/) || ["",nil,"",text]
+      tail = AnsiTerm::String.new(data[2]+
+        String.new(mf.format(
+          md.lex(data[3]+"\n", continue: true)).
+            gsub("\n",""))
+      )
+      str  = data[1] ? "#{data[1]}\e[0;34m\u2503" : ""
+      if tail.length < 71
+        tail << " "*(71-tail.length)
       end
-    end
-    # Highlight whitespace only lines
-    if lex.length == 1 && lex[0][1].strip.empty?
-      lex[0][1] = "\e[41m#{lex[0][1]}\e[0m"
+      tail.merge_attr_below(0..tail.length, AnsiTerm::Attr.new(bgcol: "48;2;10;10;32"))
+
+      [t,(str+tail.to_str)]
     end
 
-    format(lex)
+    self.register_sublexer("Comment.Single", l)
+    self.register_sublexer("Comment.Multiline", l)
   end
+
+  def self.detect?(text)
+    return true if text.shebang? 'ruby'
+  end
+
+  tag 'ruby'
+  aliases(*@@rb.aliases)
+  filenames(*@@rb.filenames)
 end
-
-
 
 
 class BufferList
@@ -73,58 +132,50 @@ class BufferList
   end
 end
 
-# FIXME: This should defer the mode selection to Rouge as much a possible
 class Modes
+  def self.choose_by_gitattributes(filename)
+    return nil if !filename
+    path = filename
+    while path != "/" &&
+      !File.exists?(path+"/.git")
 
-  @@alist_interpreters = {
-    "/usr/bin/ruby" => RubyHighlighter.new,
-    "/bin/sh"   => "Shell"
-  }
+      if File.exists?(path+"/.gitattributes")
+        attrpath ||= path+"/.gitattributes"
+      end
+      path = File.dirname(path)
+    end
 
-  @@alist_ext = {
-    ".md" => MarkdownSyntax.new,
-    ".rb" => RubyHighlighter.new,
-    "Gemfile" => RubyHighlighter.new
-  }
+    if File.exists?(path+"/.git/info/attributes")
+      attrpath = path+"/.git/info/attributes"
+      relpath  = path
+    end
 
-  def self.find_fancy(name)
-    case name.downcase
-    when "ruby"
-      return RubyHighlighter.new
-    when "markdown"
-      return MarkdownSyntax.new
+    attributes = Reality::Git::Attributes.parse(path,
+      attrpath,
+      relpath
+    )
+
+    relpath ||= path
+
+    if attributes && attrs = attributes.attributes(filename.gsub(/\a{relpath}/,""))
+      lang = attrs["language"] || attrs["gitlab-language"]
+    end
+
+    choose_by_string(lang)
+  end
+
+  def self.choose_by_string(lang)
+    if lang
+      Rouge::Lexer.find(lang)
     else
-      l = Rouge::Lexer.find_fancy(name)
-      l ? RougeMode.new(l) : nil
+      nil
     end
   end
 
-  def self.choose(filename: nil, first_line:)
-
-    mode = nil
-    first_line ||= ""
-    #if m = first_line.match(/\-\*\- *mode: *([^ \t]*) *\-\*\-/)
-    #  mode = @@alist_mode[m[1]]
-    #  return mode if mode
-    #end
-    #if m = first_line.match(/^\#\!((\/[a-zA-Z0-9]+)+)$/)
-    #  mode = @@alist_interpreters[m[1]]
-    #  return mode if mode
-    #end
-    if filename
-      mode   = @@alist_ext[File.extname(filename)] ||
-               @@alist_ext[File.basename(filename)]
-      return mode if mode
-    end
-
-    if !mode
-      rl = Rouge::Lexer.guess({ filename: filename,
-                                source: first_line})
-      if rl
-        mode = RougeMode.new(rl)
-      end
-    end
-
-    return mode
+  def self.choose(filename: nil, source:, language: nil)
+    rl = choose_by_string(language)
+    rl ||= choose_by_gitattributes(filename)
+    rl ||= Rouge::Lexer.guess({ filename: filename, source: source.join("\n")})
+    return rl ? RougeMode.new(rl) : nil
   end
 end
