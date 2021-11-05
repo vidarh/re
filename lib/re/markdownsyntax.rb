@@ -56,7 +56,7 @@ This is a test
 =end
 
 require_relative 'formatter'
-require 'rouge/layered_lexer'
+require_relative 'layered_lexer'
 
 class SpecialLexer < Rouge::RegexLexer
   def initialize
