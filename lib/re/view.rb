@@ -93,7 +93,7 @@ class View
 
     if @opts[:max_line_length]
       off = @opts[:show_lineno] ? 4 : 0
-      @out.move_cursor(@opts[:max_line_length]+1,0)
+      @out.move_cursor(off+@opts[:max_line_length]+1,0)
       print MAX_LENGTH_MARKER
     end
 
