@@ -1,29 +1,10 @@
 require 'readline'
+require 'editorconfig'
 require_relative 'bufferfactory'
-
-# Temporary hack to replace DRB
-#
-class BufferIntercept
-  @@log = nil
-
-  def log
-    @@log ||= File.open(File.expand_path("~/.re-oplog-#{Process.pid}.txt"),"w")
-  end
-
-  def initialize(buffer)
-    @buffer = buffer
-    @name   = buffer.name
-  end
-
-  def method_missing(*args,&block)
-    log.puts(@name+"| "+args.inspect)
-    log.flush
-    @buffer.send(*args,&block)
-  end
-end
+require_relative 'bufferintercept'
 
 class Editor
-  attr_reader :cursor, :buffer, :lastchar, :message, :mode, :search, :mark, :view
+  attr_reader :cursor, :buffer, :lastchar, :message, :mode, :search, :mark, :view, :ctrl,:model
   attr_writer :message
 
   attr_accessor :intercept
@@ -39,41 +20,115 @@ class Editor
     init_buffer
   end
 
+  def read_yn
+    @ctrl.raw do
+      loop do
+        char = @ctrl.read_char
+        return char if char == "y" || char == "n"
+      end
+    end
+  end
+
+  def load_config
+    @config = EditorConfig.load_file(@filename)
+    if @config.dig("rouge_theme")
+      @view.opts[:theme] = @config["rouge_theme"]
+    end
+    if @config.dig("show_lineno")
+      @view.opts[:show_lineno] = @config["show_lineno"] == "true"
+    end
+
+    if l = @config.dig("max_line_length")
+      @view.opts[:max_line_length] = l == "off" ? nil : l.to_i
+    end
+    @view.reset!
+  end
+
   def init_buffer
     @do_refresh = true
     @buffer.add_observer(self,:update)
     @cursor   = Cursor.new
     @filename = @buffer.name
 
-    Dir.chdir(File.dirname(@filename))
+    begin
+      Dir.chdir(File.dirname(@filename))
+    rescue Errno::ENOENT
+      @message = "WARNING: No such directory: #{File.dirname(@filename)}. Unable to open file"
+      return
+    end
+
+    load_config
     choose_mode
 
     mtime = File.mtime(@filename) rescue Time.at(0)
     if @buffer.created_at.to_i < mtime.to_i
       prompt("File changed on disk (created_at=#{@buffer.created_at}, mtime=#{mtime}. Reload? (y/n)")
-      loop do
-        char = @ctrl.read_char
-        if char
-          if char == "y"
-            reload
-            break
-          elsif char == "n"
-            break
-          else
-            p char
-          end
-        end
-      end
+      reload if read_yn == "y"
     end
   end
 
-  def open(filename = nil)
-    filename ||= `filesel` #gets("Filename: ")
-    return if filename == "" || filename.nil?
-    filename = filename.strip
-    @filename,row = filename.split(":")
-    data      = @factory.read_file_data(@filename)
+  def filename_at_cursor
+    line = buffer.lines(cursor.row)
+    start = line.rindex(/[<(\[']/, cursor.col)
+    return if !start
+    if line[start] == "["
+      start = line.index("](")
+      return if !start
+      start += 1
+    end
+    start+=1
+    stop = line.index(/[>)']/, cursor.col)
+    return if !stop
+    stop-=1
+    fname = line[start..stop].split(":")
+    if fname.length > 1
+      if fname != "file"
+        return nil
+      end
+      fname.shift
+    end
+    path = File.dirname(self.filename)
+    path+"/"+fname.first
+  end
 
+  def open_previous
+    prev = @prevfile
+    return if !prev
+    c = @prevcursor
+    @prevfile = self.filename
+    @prevcursor = self.cursor
+    open(prev)
+    @cursor = c
+  end
+
+  def open_at_cursor
+    f = filename_at_cursor
+    return if !f
+
+    if File.directory?(f)
+      if File.exists?(f+".md")
+        f += ".md"
+      else
+        f += "/index.md"
+      end
+    end
+    if !File.exists?(f)
+      if[-3..-1] != ".md"
+        f += ".md"
+      end
+    end
+    open(f)
+  end
+
+  def open(fname = nil)
+    @prevfile = self.filename
+    @prevcursor = self.cursor
+
+    fname ||= `filesel` #gets("Filename: ")
+    return if fname == "" || fname.nil?
+    fname = fname.strip
+    @filename,row = fname.split(":")
+    data      = @factory.read_file_data(@filename)
     open_buffer(File.expand_path(@filename),data)
 
     reset_screen
@@ -85,19 +140,35 @@ class Editor
       @message = "Starting at #{row}"
     end
   rescue Errno::EISDIR
-    Dir.chdir(filename)
-    filename = nil
+    Dir.chdir(fname)
+    fname = nil
     retry
   end
 
-  def initialize(filename: nil, factory: nil, buffer: nil, intercept: false)
+
+  def help
+    open(File.expand_path("#{__FILE__}/../help.md"))
+  end
+  
+  # For bracketed paste.
+  def start_paste
+    @paste_mode = true
+  end
+
+  def end_paste
+    @paste_mode = false
+  end
+
+  def initialize(filename: nil, factory: nil, buffer: nil, intercept: false, readonly: false)
     @intercept = intercept
     @filename = nil
     @factory  = BufferFactory.new(factory)
 
     @view     = View.new(self)
     @model    = ViewModel.new(self)
-    @ctrl     = Controller.new(self)
+    @ctrl     = readonly ? nil : Controller.new(self)
+
+    @paste_mode = false
 
     @buffer   = possibly_intercept(buffer)
     if @buffer
@@ -135,10 +206,14 @@ class Editor
   def choose_mode
     # Fragment to allow us to parse mode lines etc.
     src = Array(@buffer.lines(0..4)).concat(Array(@buffer.lines(-5..-1)))
-    @mode = Modes.choose(filename: @filename, source: src)
+    @mode = Modes.choose(filename: @filename, source: src, language: @config.dig("source_language"))
+
+    if @view.opts[:theme]
+      @mode.theme = view.opts[:theme]
+    end
 
     src.each do |line|
-      if line.match(/ re: ([a-zA-Z:]+)/)
+      if line && line.match(/ re: ([a-zA-Z:]+)/)
         $1.split(":").each do |opt|
           case opt
           when "nolineno"
@@ -166,6 +241,11 @@ class Editor
   attr_reader :blank_buffer, :line_sep, :filename
 
   def render
+    # Don't render while pasting... Might want to ease up on that
+    # to re-render every x milliseconds etc., but this speeds up paste
+    # substantially.
+    return if @paste_mode
+
     IO.console.raw do
       @view.render
     end
@@ -173,7 +253,9 @@ class Editor
 
   def gets(str = "")
     prompt
-    Readline::readline("#{str} ")
+    @ctrl.pause do
+      Readline::readline("#{str} ")
+    end
   end
 
  def prompt(str = "")
@@ -221,42 +303,44 @@ class Editor
     @search = str || @search || ""
 
     update = -> do
-      render    
+      render
       prompt("Find: #{@search}")
     end
 
     update.call
-    @mark = cursor    
-    loop do
-      char = @ctrl.read_char
-      if char
-        if char == "\cc" || char == "\e"
-          @search = ""
-          @message = "Search terminated."
-          break
-        elsif char == "\177"
-          @search.slice!(-1)
-          find_forward
-        elsif char == "\r"
-          @message = "Search paused. To cont. press ^f; To cancel ^f + ^c"
-          break
-        elsif char == "\ck"
-          @search = ""
-        elsif char == "\cf"
-          if find_next
-          else
-            find_next
-            @message = "Wrapped around; ^f to restart search"
+    @mark = cursor
+    @ctrl.raw do
+      loop do
+        char = @ctrl.read_char
+        if char
+          if char == "\cc" || char == "\e"
+            @search = ""
+            @message = "Search terminated."
             break
-          end
-        elsif char =~ /\A[[:print:]]+\Z/
-          @search += char
-          find_forward
-        else
+          elsif char == "\177"
+            @search.slice!(-1)
+            find_forward
+          elsif char == "\r"
+            @message = "Search paused. To cont. press ^f; To cancel ^f + ^c"
+            break
+          elsif char == "\ck"
+            @search = ""
+          elsif char == "\cf"
+            if find_next
+            else
+              find_next
+              @message = "Wrapped around; ^f to restart search"
+              break
+            end
+          elsif char =~ /\A[[:print:]]+\Z/
+            @search += char
+            find_forward
+          else
 #          @search += char.inspect
 #          find_forward
+          end
+          update.call
         end
-        update.call      
       end
     end
   end
@@ -281,25 +365,34 @@ class Editor
 
       if !num.nil?
         @cursor = @cursor.move(@buffer,num+10, @cursor.col)
+        @cursor = @cursor.move(@buffer,num-1, @cursor.col)
       end
+    end
+
+    def select_theme(theme=nil)
+      theme ||= `select-rouge-theme`.strip
+      @mode.theme = theme
+      @view.reset!
+      refresh
     end
 
     def split_vertical
-      case ENV["DESKTOP_SESSION"]
-      when "bspwm"
-        system("sh -c 'bspc node -p south ; exec term e --buffer #{@buffer.buffer_id}' &")
-      else
-        system("i3-msg 'split vertical; exec term e --buffer #{@buffer.buffer_id}'")
-      end
+      system("split-vertical term e --buffer #{@buffer.buffer_id}")
     end
 
-    def split_horizontal
-      case ENV["DESKTOP_SESSION"]
-      when "bspwm"
-        system("sh -c 'bspc node -p east ; exec term e --buffer #{@buffer.buffer_id}' &")
-      else
-        system("i3-msg 'split horizontal; exec term e --buffer #{@buffer.buffer_id}'")
+    def split_vertical_term
+      system("split-vertical term")
+    end
+
+    def split_horizontal(cmd=nil)
+      if !cmd
+        cmd = "term e --buffer #{@buffer.buffer_id}"
       end
+      system("split-horizontal #{cmd}")
+    end
+
+    def split_horizontal_term(cmd = "")
+      system("split-horizontal term #{cmd}")
     end
 
     def set_mode(m)
@@ -333,7 +426,7 @@ class Editor
       first = true
       @yank_buffer.lines(0..-1).each do |line|
         if !first
-          enter(no_indent: true)
+          enter(paste: true)
         end
         buffer.insert(cursor, line)
         right(line.size)
@@ -359,7 +452,7 @@ class Editor
     def determine_indent(row)
       off = -1
       until pos = get_indent(row+off) do; off -= 1; end
-      
+
       prev = @buffer.lines(row+off)
       cur  = @buffer.lines(row)
       calc_indent(pos, prev, cur)
@@ -374,8 +467,15 @@ class Editor
 
 
     def handle_input
-      if char = @ctrl.handle_input
-        @lastchar = char
+      if !@ctrl
+        sleep(0.1)
+        @do_refresh = true
+        @message = "Read Only View"
+        return
+      end
+
+      if c = @ctrl.handle_input
+        @lastchar = @ctrl.lastchar if @ctrl.lastchar
         @do_refresh = true
       end
     end
@@ -388,7 +488,18 @@ class Editor
     def quit
       reset_screen
       puts ANSI.cls
+      IO.console.cooked!
       exit
+    end
+
+    def buffer_home
+      @view.home
+      @cursor = cursor.move(buffer, 0, cursor.col)
+    end
+
+    def buffer_end
+      @view.end
+      @cursor = cursor.move(buffer, buffer.lines_count, cursor.col)
     end
 
     def page_down
@@ -402,19 +513,19 @@ class Editor
     end
 
     def up(off=1)
-      @cursor = cursor.up(buffer,off)
+      @cursor = cursor.up(buffer,off.to_i)
     end
 
     def down(off=1)
-      @cursor = cursor.down(buffer,off)
+      @cursor = cursor.down(buffer,off.to_i)
     end
 
     def right(offset=1)
-      @cursor = @model.right(offset)
+      @cursor = cursor.right(buffer,offset)
     end
 
     def left
-      @cursor = @model.left
+      @cursor = cursor.left(buffer,1)
     end
 
     def join_line
@@ -423,7 +534,6 @@ class Editor
 
     def backspace
       return if cursor.beginning_of_file?
-
 
       if cursor.col == 0
         cursor_left = buffer.lines(cursor.row).size + 1
@@ -452,6 +562,10 @@ class Editor
       data
     end
 
+    def show_filename
+      @message = filename
+    end
+
     def save
       begin
         FileWriter.write(filename, data)
@@ -463,10 +577,72 @@ class Editor
       end
     end
 
-    def enter no_indent: false
+    def insert_prefix
+      r = cursor.row
+      c = cursor.col
+      return if r < 1
+      prev = @buffer.lines(r-1)
+      if ch = @mode.should_insert_prefix(c, prev)
+        insert_char(ch)
+      end
+    end
+
+    def current_line
+      @buffer.lines(cursor.row)
+    end
+
+    def rstrip_line
+      line = current_line
+      stripped = current_line.rstrip
+      return if line.length == stripped.length
+      col = cursor.col
+      oldc = cursor
+      @cursor = cursor.move(@buffer, cursor.row, stripped.length)
+      delete_after
+      if col < stripped.length
+        @cursor = oldc
+      end
+    end
+
+    def enter(no_indent: false, paste: false)
+      rstrip_line # Strip the end of the current line
       @buffer.break_line(cursor)
+      rstrip_line # Strip the end after splitting.
       @cursor = cursor.enter(buffer)
-      indent unless no_indent
+      if !@paste_mode && !paste
+        indent unless no_indent
+        insert_prefix
+      end
+    end
+
+    def prev_word
+      return if cursor.col == 0
+      line = current_line
+      c = cursor.col
+      if c > 0
+        c -= 1
+      end
+      while c > 0 && line[c] && line[c].match(/[ \t]/)
+        c -= 1
+      end
+      while c > 0 && !(line[c-1].match(/[ \t\-]/))
+        c -= 1
+      end
+      off = cursor.col - c
+      @cursor = Cursor.new(cursor.row, c)
+      off
+    end
+
+    def break_line
+      if @config.dig("soft_break")
+        # FIXME: this will move the cursor,
+        # without preserving position within the word
+        off = prev_word
+        enter
+        right(off)
+      else
+        enter
+      end
     end
 
     def history_undo
@@ -480,9 +656,13 @@ class Editor
     end
 
     def insert_char(char)
+      if @view.opts[:max_line_length] && cursor.col >= @view.opts[:max_line_length]
+        break_line
+      end
+
       buffer.insert(cursor, char)
       @view.update_line(cursor.row)
-      right
+      right(char.size)
     end
 
     def line_home
@@ -522,11 +702,27 @@ class Editor
       begin
         Timeout.timeout(0.2) {
           @view.reset_screen
-          puts "FIXME: Buggy suspen. Ctrl+z once more to suspend."
+          puts "FIXME: Buggy suspend. Ctrl+z once more to suspend."
           Process.kill("STOP", Process.pid)
         }
       rescue Timeout::Error
         refresh
       end
+    end
+
+    def toggle_lineno
+      o = self.view.opts
+      o[:show_lineno] = !o[:show_lineno]
+      reset_screen
+    end
+
+    def pry
+      @ctrl.mode = :pause
+      sleep(0.1)
+      IO.console.cooked!
+      puts ANSI.cls
+      binding.pry
+      @ctrl.mode = :cooked
+      reset_screen
     end
   end
