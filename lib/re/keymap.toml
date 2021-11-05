@@ -1,0 +1,58 @@
+
+## Individual key strokes.
+## Unmapped values default to its own name.
+
+[keys]
+ctrl_up    = "page_up"
+ctrl_down  = "page_down"
+
+shift_up   = ["up", "10"]
+shift_down = ["down", "10"]
+shift_tab  = "insert_tab"
+tab        = "indent"
+
+meta_2     = "split_vertical"
+meta_3     = "split_horizontal"
+"²"        = "split_vertical"
+"³"        = "split_horizontal"
+home       = "line_home"
+end        = "line_end"
+ctrl_home  = "buffer_home"
+ctrl_end   = "buffer_end"
+
+ctrl__     = "history_undo"
+ctrl_a     = "line_home"
+ctrl_e     = "line_end"
+ctrl_f     = "find"
+ctrl_g     = "goto_line"
+ctrl_h     = "backspace"
+ctrl_j     = "enter"
+ctrl_k     = "kill"
+ctrl_l     = "reset_screen"
+ctrl_o     = "open"
+ctrl_q     = "quit"
+ctrl_r     = "history_redo"
+ctrl_s     = "save"
+ctrl_y     = "yank"
+ctrl_z     = "suspend"
+
+ctrl_delete = "kill"
+ctrl_insert = "yank"
+
+ctrl_left  = "prev_word" # FIXME: Not impl
+ctrl_right = "next_word" # FIXME: Not impl
+
+f1        = "help"
+meta_f1   = "open_at_cursor"
+meta_f2   = "open_previous"
+meta_f3   = "open_next_link" # FIXME: Not impl.
+
+## Multi-key combinations
+
+[keys.ctrl_x]
+b   = "switch_buffer"
+f   = "show_filename"
+l   = "toggle_lineno"
+p   = "pry"
+r   = "reload"
+t   = "select_theme"
