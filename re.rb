@@ -28,15 +28,36 @@ require_relative 'lib/re/controller'
 require_relative 'lib/re/indent'
 require_relative 'lib/re/editor'
 require_relative 'lib/re/server'
+require_relative 'lib/re/macros'
+require_relative 'lib/re/themes/base16_modified'
 
+require 'fcntl'
 
 if __FILE__ == $0
+
+  at_exit do
+    #
+    # FIXME: This is a workaround for Controller putting
+    # STDIN into nonblocking mode and not cleaning up, which
+    # causes all kind of problems with a variety of tools (more,
+    # docker etc.) which expect it to be blocking.
+    Controller.pause! do
+      stdin_flags = STDIN.fcntl(Fcntl::F_GETFL)
+      STDIN.fcntl(Fcntl::F_SETFL, stdin_flags & ~Fcntl::O_NONBLOCK) #
+      IO.console.cooked!
+      exit
+    end
+  end
 
   opts = Slop.parse do |o|
     o.bool    '-h', '--help', "This help"
     o.bool    '--list-buffers', 'List buffers'
+    o.bool    '--list-themes', 'List registered themes'
     o.integer '--buffer', 'Open buffer with the given number'
+    o.integer '--kill-buffer', 'Kill buffer with the given number'
     o.bool    '--server', 'Start as a server. Usually started automatically'
+    o.bool    '--treeserver', 'Start as new test server'
+    o.bool    '--readonly', 'Start as client, but do not start the controller at all'
     o.separator ''
     o.separator 'debug options:'
     o.bool    '--local',  'Run without server'
@@ -51,8 +72,33 @@ if __FILE__ == $0
 
   if opts.server?
 
+    # Daemonize by double-fork and becoming sesson leader.
+    raise 'First fork failed' if (pid = fork) == -1
+    exit unless pid.nil?
+    Process.setsid
+    raise 'Second fork failed' if (pid = fork) == -1
+    exit unless pid.nil?
+
+    STDIN.reopen '/dev/null'
+    STDOUT.reopen '/dev/null', 'a'
+
     $factory = f = Factory.new
-    DRb.start_service($uri, f)
+
+    begin
+      DRb.start_service($uri, f)
+    rescue Errno::EADDRINUSE
+      fname = "#{ENV["HOME"]}/.re"
+      begin
+        UNIXSocket.new(fname)
+        STDERR.puts "Another server is listening on #{fname}. Exiting"
+        exit 1
+      rescue Errno::ECONNREFUSED
+        File.unlink(fname)
+      end
+      retry
+    end
+
+    STDERR.reopen STDOUT
 
     Thread.abort_on_exception = true
     Thread.new do
@@ -62,9 +108,6 @@ if __FILE__ == $0
       end
     end
 
-    #$SAFE = 1   # disable eval() and friends
-
-    # Wait for the drb server thread to finish before exiting.
     DRb.thread.join
     exit(0)
   end
@@ -90,11 +133,25 @@ if __FILE__ == $0
 
       if opts.list_buffers?
         puts f.list_buffers
-      elsif opts[:buffer]
-        $editor = Editor.new(buffer: f.new_buffer(opts[:buffer],""), factory: f, intercept: opts.intercept?)
+        exit(0)
+      elsif opts.list_themes?
+        puts Rouge::Theme.registry.keys.sort.join("\n")
+        exit(0)
+      elsif opts[:kill_buffer]
+        f.kill_buffer(opts[:kill_buffer])
+        exit(0)
+      end
+
+      STDOUT.print "\e[?2004h" # Enable bracketed paste
+      at_exit do
+        STDOUT.print "\e[?2004l" #Disable bracketed paste
+      end
+
+      if opts[:buffer]
+        $editor = Editor.new(buffer: f.new_buffer(opts[:buffer],""), factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
         $editor.run
       else
-        $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?)
+        $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
         $editor.run
       end
       break
@@ -105,14 +162,16 @@ if __FILE__ == $0
         STDERR.puts "Failed to open connection to server. Trying to start"
       end
       first = false
-      cmd = ["ruby",__FILE__,"--server", "2>/dev/null", ">/dev/null","&"].join(" ")
-      p cmd
+      cmd = ["ruby",__FILE__,"--server"].join(" ")
       system(cmd)
     rescue SystemExit
       raise
     rescue Exception => e
-      puts ANSI.cls
-      binding.pry
+      #$editor&.ctrl&.mode = :pause
+      Controller.pause! do
+        puts ANSI.cls
+        binding.pry
+      end
     end
   end
 end

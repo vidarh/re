@@ -28,14 +28,35 @@ class Factory
     rescue Exception => e
       p e
     end
+
+    @buffers.each_with_index do |buf,id|
+      buf.buffer_id = id
+    end
+
     @buffers ||= []
   end
 
   attr_reader :buffers
 
-  def new_buffer(buf, str, created_at = 0)
+  def find_buffer(buf)
     b   = @buffers[buf] if buf.is_a?(Fixnum)
-    b ||= @buffers.find {|b| b.name == buf }
+    b ||= @buffers.compact.find {|b| b.name == buf }
+    b
+  end
+
+  # FIXME: Warn if not saved
+  def kill_buffer(buf)
+    # FIXME: Is this a problem? Don't want to mess up
+    # buffer ids.
+    if @buffers[buf]
+      @buffers[buf] = nil
+    else
+      raise RuntimeError.new("No such buffer '#{buf}'")
+    end
+  end
+
+  def new_buffer(buf, str, created_at = 0)
+    b = find_buffer(buf)
 
     if !b
       b = Buffer.new(@buffers.count,buf,str, created_at)
@@ -46,14 +67,15 @@ class Factory
   end
 
   def list_buffers
-    @buffers.collect{|buf|
+    @buffers.compact.collect{|buf|
       [buf.buffer_id, buf.name].join(" ")
     }.join("\n")
   end
 
   def store_buffers
     puts "Storing buffers"
-    FileWriter.write(@bufstore,JSON.generate(buffers.map(&:as_json)))
+
+    FileWriter.write(@bufstore,JSON.generate(buffers.compact.map(&:as_json)))
     puts "Stored."
   end
 end
