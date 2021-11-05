@@ -6,23 +6,21 @@ class Cursor
     @col = col
   end
 
-  def up(buffer, offset = 1)
-    Cursor.new(row - offset, col).clamp(buffer)
-  end
+  def move(buffer,row,col); self.class.new(row,col).clamp(buffer); end
+  def up(buffer,   offset = 1); move(buffer, row-offset,col); end
+  def down(buffer, offset = 1); move(buffer, row+offset,col); end
 
-  def down(buffer, offset = 1)
-    Cursor.new(row + offset, col).clamp(buffer)
-  end
-
-  def move(buffer, row, col)
-    Cursor.new(row, col).clamp(buffer)
+  def left(buffer, offset = 1)
+    return Cursor.new(row, col - offset) if offset <= col
+    return self if beginning_of_file?
+    return move(buffer,row-1,buffer.line_length(row-1))
   end
 
   def right(buffer, offset = 1)
-    buffer.right(self,offset)
-    #return Cursor.new(row, col + offset).clamp(buffer) unless end_of_line?(buffer)
-    #return self if final_line?(buffer)
-    #Cursor.new(row + 1, 0)
+    #buffer.right(self,offset)
+    return Cursor.new(row, col + offset).clamp(buffer) unless end_of_line?(buffer)
+    return self if final_line?(buffer)
+    Cursor.new(row + 1, 0)
   end
 
   def clamp(buffer)
