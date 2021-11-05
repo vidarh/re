@@ -229,7 +229,7 @@ class View
     if @viewcache[r] != lines
       @editor.mode.reset! if @editor.mode.respond_to?(:reset!)
       @viewcache[r]   = lines
-      @rendercache[r] = @editor.mode.call(lines.join("\n")).split("\n").map{|l| AnsiTerm::String.new(l) }
+      @rendercache[r] = @editor.mode ? @editor.mode.call(lines.join("\n")).split("\n").map{|l| AnsiTerm::String.new(l) } : lines
     end
 
     @rendercache[r].enum_for(:zip, lines, r)
