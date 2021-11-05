@@ -96,7 +96,7 @@ class MyRuby < Rouge::LayeredLexer
       data = text.match(/([^#]*)#( ?)(.*)/) || ["",nil,"",text]
       tail = AnsiTerm::String.new(data[2]+
         String.new(mf.format(
-          md.lex(data[3]+"\n", continue: true)).
+          md.continue_lex(data[3]+"\n")).
             gsub("\n",""))
       )
       str  = data[1] ? "#{data[1]}\e[0;34m\u2503" : ""

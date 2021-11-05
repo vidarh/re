@@ -74,12 +74,19 @@ module Rouge
     end
 
     def stream_tokens(str,&b)
-      @lexer.lex(str,continue: true) do |tok,val|
+      @lexer.continue_lex(str) do |tok,val|
         if sl = @sublexers[@cur_lexer || tok.qualname]
           if sl.respond_to?(:lex)
-            sl.lex(val, continue: !@cur_lexer.nil?) do |t,v|
-              b.call(t,v)
+            if @cur_lexer.nil?
+              sl.lex(val) do |t,v|
+                b.call(t,v)
+              end
+            else
+              sl.continue_lex(val) do |t,v|
+                b.call(t,v)
+              end
             end
+
             if sl.stack.size > 1
               @cur_lexer ||= tok.qualname
             else
