@@ -2,7 +2,7 @@
 INDENT=2
 
 $ilex = Rouge::Lexers::Ruby.new
-$block_start = Set[*%w{if else elsif while class module def rescue begin do}]
+$block_start = Set[*%w{if else elsif while class module def rescue begin do when case}]
 
 def is_block_start(fp)
   return false if !fp
@@ -11,7 +11,7 @@ def is_block_start(fp)
 end
 
 # FIXME: This is Ruby specific
-def calc_indent(pos, prev, cur)
+def calc_indent(pos,prev,cur)
   prev = $ilex.lex(prev).to_a
   while fp = prev.shift
     break if fp[0].name != :Text
@@ -19,11 +19,10 @@ def calc_indent(pos, prev, cur)
   lp = prev.last
   if is_block_start(fp)
     pos += INDENT
-  elsif lp && (lp[1] == "{" || lp[1] == "|" || lp[1] == "do")
-    #prev[-1] == "{" || prev[-1] == "|"
+  elsif lp && (lp[1] == "{" || lp[1] == "(" || lp[1] == "[" || lp[1] == "|" || lp[1] == "do")
     pos += INDENT
   end
-  if cur.match(/^[ \t]*(end|else|elsif|rescue|\})([ \t]+.+)?/)
+  if cur && cur.match(/^[ \t]*(end|else|elsif|rescue|when|\}|\))([ \t]+.+)?/)
     pos -= INDENT
   end
   pos = 0 if pos < 0
