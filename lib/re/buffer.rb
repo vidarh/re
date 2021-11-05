@@ -5,7 +5,8 @@ class Buffer
 
   include DRb::DRbObservable
 
-  attr_reader :name, :buffer_id, :created_at
+  attr_reader :name, :created_at, :history
+  attr_accessor :buffer_id
   attr_writer :created_at
 
   def initialize(id,name, lines, created_at = 0)
