@@ -39,7 +39,7 @@ module ANSI
     print ANSI.cls
   end
 
-    def self.move_cursor(row, col)
-      print cup(row,col)
-    end
+  def self.move_cursor(row, col)
+    print cup(row,col)
   end
+end
