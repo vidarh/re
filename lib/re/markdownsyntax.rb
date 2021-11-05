@@ -24,6 +24,12 @@
 #     end
 # ```
 #
+# *test*
+#
+# *test
+# more*
+#
+#
 #    (Any Rouge supported language should work here^^^)
 #
 #  * Indented code blocks:
@@ -65,11 +71,14 @@ class SpecialLexer < Rouge::RegexLexer
   end
 
   state :string1 do
-    rule /[^"]/, Literal::String
+    rule /[^\"]/, Literal::String
     rule /^\"/, Literal::String::Double # Don't pop if first character in line
     rule /\"/, Literal::String::Double, :pop! #punctuation for string
   end
 
+  # FIXME: Something around here breaks the rendering.
+  # when editing this file.
+  #
   state :root do
     rule /\+[a-zA-Z]+/,         Comment::Special
     rule /\([ABCDEQ]\)/,        Comment::Special
@@ -77,9 +86,9 @@ class SpecialLexer < Rouge::RegexLexer
     rule /@[a-zA-Z]+/,          Comment::Special
     rule /(\@[0-9:]+[a|p]?m?)/, Comment::Special
 
-    rule /^[^\"]*\"$/, Literal::String
-    rule /\"$/, Literal::String::Double # Don't start a string at the end of a line
-    rule /\"/, Literal::String::Double, :string1 #punctuation for string
+    rule /^[^"]*\"$/, Literal::String
+    rule /["]$/, Literal::String::Double # Don't start a string at the end of a line
+    rule /["]/, Literal::String::Double, :string1 #punctuation for string
 
     rule /\s+\n/, Error
 

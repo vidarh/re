@@ -57,6 +57,8 @@ class RougeMode
   end
 end
 
+require_relative 'rouge/markdown'
+
 # FIXME: Unify / generalize this and MyRuby
 class MyMarkdown < Rouge::LayeredLexer
   attr_reader :lexer
@@ -68,7 +70,8 @@ class MyMarkdown < Rouge::LayeredLexer
     super(opts.merge({
             lexer: @@md.new,
             sublexers: {"Text" => @@sp}
-    }))
+            })
+          )
   end
 
   tag 'markdown'
@@ -79,7 +82,7 @@ end
 class MyRuby < Rouge::LayeredLexer
   @@rb = Rouge::Lexer.find("ruby")
   @@sp = SpecialLexer.new
-  @@md = Rouge::Lexer.find("markdown")
+  @@md = MyMarkdown
 
   def initialize(opts = {})
     @mf = ReFormatter.new(Rouge::Themes::ThankfulEyes.new)
