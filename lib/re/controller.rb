@@ -1,109 +1,189 @@
+# coding: utf-8
 
+require_relative 'keymap'
+require 'keyboard_map'
+require 'io/console'
 
 class Controller
-  class COMBINER
+
+  attr_reader :lastcmd,:lastkey,:lastchar
+  attr_accessor :mode
+
+  @@keybindings = KeyBindings.map
+  @@con = IO.console
+
+  # Pause *any* Controller instance
+  @@pause = false
+  def self.pause!
+    old = @@pause
+    @@pause = true
+    @@con.cooked do
+      yield
+    end
+  ensure
+    @@pause = old
   end
 
-  @@keybindings = {
-    "\cq"   => :quit,
-    "\cs"   => :save,
-    "\e[1;5A" => [:up,10],
-    "\e[1;5B" => [:down, 10],
-    "\e[A"  => :up,
-    "\e[B"  => :down,
-    "\e[C"  => :right,
-    "\e[D"  => :left,
-    "\e[Z"  => :insert_tab,
-    "\ck"   => :kill,
-    "\cy"   => :yank,
-    "\e[6~" => :page_down,
-    "\e[5~" => :page_up,
-    "\cp"   => :up,
-    "\cn"   => :down,
-    "\cu"   => :delete_before,
-    "\c_"   => :history_undo,
-#    "\cr"	=> :history_redo,
-    "\f"    => :reset_screen,
-    "\r"    => :enter,
-    "\t"    => :indent,
-    "\e2"   => :split_vertical,
-    "\e3"   => :split_horizontal,
-    "\cf"   => :find,
-    "\cg"   => :goto_line,
-    "\co"   => :open,
-    "\ca"   => :line_home,
-    "\e[7~" => :line_home,
-    "\ce"   => :line_end,
-    "\e[8~" => :line_end,
-    "\ch"   => :backspace,
-    "\177"  => :backspace,
-    "\cd"   => :delete,
-    "\e[P"  => :delete,
-    "\cR"   => :reload,
-    "\cz"   => :suspend,
-
-    "\cx"   => COMBINER,
-    "\cxb"   => :switch_buffer,
-    "\cxl"   => -> { o=$editor.view.opts; o[:show_lineno] = !o[:show_lineno]; $editor.reset_screen },
-    "\cxp" => -> { puts ANSI.cls; binding.pry; $editor.reset_screen }
-  }
+  def paused?
+    @mode == :pause || @@pause
+  end
 
   def initialize(target)
     @target = target
+    @buf = ""
+    @commands = []
+    @mode = :cooked
+
+    @kb = KeyboardMap.new
+    @@con = @con = IO.console
+    raise if !@con
+    @t = Thread.new { readloop }
+    @m = Mutex.new
   end
 
-  def read_char(timeout=0.1)
-    IO.console.raw do
-      return if !IO.select([$stdin],nil,nil, timeout)
+  def readloop
+    loop do
+      if paused?
+        sleep(0.1)
+      elsif @mode == :cooked
+        read_input
+      else
+        fill_buf
+      end
+    end
+  end
 
-      char = $stdin.getc
+  def pause
+    old = @mode
+    @mode = :pause
+    yield
+  ensure
+    @mode = old
+  end
 
-      return char if char != "\e"
+  def fill_buf(timeout=0.1)
+    if paused?
+      sleep(0.1)
+      Thread.pass
+      return
+    end
+    @con.raw!
+    return if !IO.select([$stdin],nil,nil,0.1)
+    str = $stdin.read_nonblock(4096)
+    str.force_encoding("utf-8")
+    @buf << str
+  rescue IO::WaitReadable
+  end
 
-      maxlen = 6
-      @cnt ||= 0
-      begin
-        char << $stdin.read_nonblock(maxlen)
-        @message = char.to_s + " / #{@cnt}"
-        @cnt += 1
-      rescue IO::WaitReadable
-        return char if maxlen == 2
-        maxlen -= 1
-        retry
+  def getc(timeout=0.1)
+    if !paused?
+      while @buf.empty?
+        fill_buf
+      end
+      @buf.slice!(0) if !paused? && @mode == :cooked
+    else
+      sleep(0.1)
+      Thread.pass
+      return nil
+    end
+  end
+
+  def raw
+    @mode = :raw
+    yield
+  ensure
+    @mode = :cooked
+  end
+
+  def read_char
+    sleep(0.001) if @buf.empty?
+    @buf.slice!(0)
+  end
+
+  def get_command
+    map = @@keybindings
+    loop do
+      c = nil
+      char = getc
+      return nil if !char
+
+      c1 = Array(@kb.call(char)).first
+      c = map[c1.to_sym] if c1
+
+      if c.nil? && c1.kind_of?(String)
+        return [:insert_char, c1]
       end
 
-      char
+      if c.nil?
+        if c1
+          @lastchar = c1.to_sym
+          return @lastchar
+        else
+          @lastchar = char.inspect
+          return nil
+        end
+      end
+
+      if c.kind_of?(Hash)
+        map = c
+      else
+        @lastchar = c1.to_sym.to_s.split("_").join(" ")
+        @lastchar += " (#{c.to_s})" if c.to_s != @lastchar
+        return c
+      end
     end
+  end
+
+  def do_command(c)
+    return nil if !c
+    if @target.respond_to?(Array(c).first)
+      @lastcmd = c
+      @target.instance_eval { send(*Array(c)) }
+    else
+      @lastchar = "Unbound: #{Array(c).first.inspect}"
+    end
+  end
+
+  def read_input
+    c = get_command
+    if !c
+      Thread.pass
+      return
+    end
+    if Array(c).first == :insert_char
+      # FIXME: Attempt to combine multiple :insert_char into one.
+      #Probably should happen in get_command
+      #while (c2 = get_command) && Array(c2).first == :insert_char
+      #  c.last << c2.last
+      #end
+      #@commands << c
+      #c = c2
+      #return nil if !c
+    end
+#    p [:READ_INPUT,c, @commands]
+#    @m.synchronize {
+    @commands << c
+#     }
+    Thread.pass
+  end
+
+  def next_command
+    if @commands.empty?
+      sleep(0.01)
+      Thread.pass
+    else
+#      p [:NEXT_COMMAND, @commands]
+    end
+    #@m.synchronize {
+    @commands.shift
+     #}
   end
 
   def handle_input(prefix="",timeout=0.1)
-    char = read_char(timeout)
-    if char
-      command(prefix+char) 
-      return prefix+char
+    if c = next_command
+#      p [:NEXT, c]
+      do_command(c)
     end
-    nil
-  end
-
-  def command(char)
-    c = @@keybindings[char]
-    if !c && char =~ /\A[[:print:]]+\Z/
-      c = [:insert_char, char]
-    end
-
-    if c
-      if c == COMBINER
-        return handle_input(char,2)
-      end
-
-      @lastcmd = c
-      @target.instance_eval do
-        if c.is_a?(Proc)
-          c.call
-        else
-          send(*Array(c))
-        end
-      end
-    end
+    return c
   end
 end
