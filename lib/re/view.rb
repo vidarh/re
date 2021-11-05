@@ -1,8 +1,42 @@
+# coding: utf-8
 require_relative 'viewmodel'
 require_relative 'termbuffer'
 
 class View
   attr_reader :editor, :opts
+
+  CUTOFF_MARKER     = ANSI.sgr(33) {"\u25b8"}
+  MAX_LENGTH_MARKER = ANSI.sgr(33) {"\u25bf"}
+  EOL_MARKER        = ANSI.sgr(30,49,:bold){"\u25c2"}
+
+
+  # FIXME: This doesn't handle files 10000 lines and above.
+  LINENO_FORMAT = "\e[38;2;0;192;0m\e[48;2;16;48;16m\e[1m%4d\e[38;2;16;48;16m\e[48;2;8;24;8m\u258B#{ANSI.sgr(0,49,39)} "
+  LINENO_LEN = 6
+  WBUF = 3 # Extra space for marks etc.
+  TABCHAR = "\u2504"
+  #TAB = AnsiTerm::String.new(ANSI.sgr(38,2,32,16,16)+"\u2503"+TABCHAR*3)
+  #TAB = AnsiTerm::String.new(TABCHAR*4)
+  TAB = AnsiTerm.str(" "*4).freeze
+
+  MATCH_ATTRS = {
+    true => AnsiTerm.attr(
+      fgcol: 32,
+      bgcol: 45,
+      flags: AnsiTerm::Attr::UNDERLINE
+    ),
+    false => AnsiTerm::Attr.new(
+      fgcol: 32,
+      bgcol: 44
+    )
+  }.freeze
+
+  TABS = [
+    TAB[0..3].freeze,
+    TAB[0..2].freeze,
+    TAB[0..1].freeze,
+    TAB[0..0].freeze
+  ].freeze
 
   def initialize(editor)
     @editor = editor
@@ -16,7 +50,6 @@ class View
     @h = 0
 
     @out = TermBuffer.new(width, height)
-    @rendercache = {} #@FIXME Need LRU
 
     @opts = {
       show_lineno: true
@@ -40,7 +73,7 @@ class View
   end
 
   def text_xoff
-    @opts[:show_lineno] ? LINENO_LEN : 0
+    @opts[:show_lineno] ? LINENO_LEN : 1
   end
 
   def text_width
@@ -58,31 +91,24 @@ class View
   def render_status
     h,w = winsize
 
-    pos = "(%d,%d)" % [cursor.col, cursor.row]
+    if @opts[:max_line_length]
+      off = @opts[:show_lineno] ? 4 : 0
+      @out.move_cursor(@opts[:max_line_length]+1,0)
+      print MAX_LENGTH_MARKER
+    end
+
+    pos = "(%d,%d)" % [cursor.col, cursor.row + 1]
     mode = (@editor.mode || "text").to_s
-    status = " #{pos} #{mode} "
+    status = "#{@editor.ctrl && @editor.ctrl.lastchar} #{pos} #{mode} "
     status = status[0..w-1] if status.length >= w
 
     @out.move_cursor(w-status.length-1,0)
-    print "#{ANSI.sgr(40,37)}#{status}#{ANSI.sgr(49,37,:bold)}"
-    msg = @editor.message[0.. w-2].strip
-    @out.move_cursor(w-msg.size-1,h-1)
+    print "#{ANSI.sgr(48,2,32,32,32,37)} #{status}#{ANSI.sgr(49,37,:bold)}"
+    msg = @editor.message[0.. w-1]
+    @out.move_cursor(w-msg.size-2,h-1)
     print ANSI.sgr(:normal)+ANSI.sgr(37,45)+msg
     @editor.message = ""
     status.size
- end
-
-  def render_line(str)
-    if out = @rendercache[str.hash]
-      return out
-    end
-    if @editor.mode && @editor.mode.respond_to?(:call)
-      line = @editor.mode.call(str)
-    else
-      line = str
-    end
-    @rendercache[str.hash]=line
-    line
   end
 
   def down(offset = 1)
@@ -99,6 +125,14 @@ class View
     @top -= offset
     @top = 0 if @top < 0
     oldtop - @top
+  end
+
+  def home
+    @top = 0
+  end
+
+  def end
+    @top = buffer.lines_count - height/2
   end
 
   def update_top
@@ -118,36 +152,26 @@ class View
     @out.move_cursor(row+@y,col+@x)
   end
 
-  CUTOFF_MARKER = ANSI.sgr(33) {"\u25b8"}
-  EOL_MARKER    = ANSI.sgr(30,49,:bold){"\u25c2"}
-  LINENO_FORMAT = "#{ANSI.sgr(40,32,1)}%3d#{ANSI.sgr(30){"\u2502"}}#{ANSI.sgr(0,49,39)} "
-  LINENO_LEN = 5
-  WBUF = 3 # Extra space for marks etc.
-  TABCHAR = "\u2504"
-  TAB = ANSI.sgr(30,:bold) { TABCHAR*3 + "\u2578" }
+  def each_match(str,match)
+    start = 0
+    sl = match.length
+    while i = str.index(match,start)
+      start = i + sl
+      yield(i ... start)
+    end
+  end
 
   def render_marks line, y
+    line = line.dup
     s = @editor.search
     return line if !s || s.empty?
-
-    start = 0
-    n = ""
     m = @editor.mark
 
-    while i = line.index(s, start)
-      n << "\e[0m"
-      n << (line[start .. i-1] || "")
-      if m && m.row == y && m.col == i
-        n << "\e[32;45;4m#{s}"
-      else
-        n << "\e[32;44m#{s}"
-      end
-      start = i + s.length
+    each_match(line, s) do |r|
+      c = m && m.row == y && m.col == r.first
+      line.set_attr(r, MATCH_ATTRS[c])
     end
-    n << "\e[0m"
-    n << (line[start .. -1] || "")
-
-    AnsiTerm::String.new(n)
+    line
   end
 
   def adjust_xoff(w)
@@ -165,55 +189,86 @@ class View
     end
   end
 
+  # FIXME
+  # Using index would probably be better/faster.
+  #
+  #
   def update_line(y,line=nil)
-    line ||= buffer.lines(y)
-    line = line.gsub("\t", TABCHAR*4)
-    @viewlines[y] = line
-    line
+    if !line
+      line = AnsiTerm::String.new(buffer.lines(y))
+    end
+
+    pos = 0
+    max = line.length
+    col = 0
+    nline = AnsiTerm::String.new
+    while (pos < max)
+      ch = line.char_at(pos)
+      if ch == "\t"
+        t = 4-(col%4)
+        nline << TABS[4-t]
+        col += t
+      else
+        nline << line[pos]
+        col+= 1
+      end
+      pos+= 1
+    end
+
+    nline
+  end
+
+  # FIXME: Much to gain here by rendering a margin on either side, and only
+  # updating if "lines" are dirty.
+  def mode_render(r)
+    lines = buffer.lines(r)
+
+    @viewcache   ||= Hash.new { "" }
+    @rendercache ||= Hash.new { AnsiTerm::String.new }
+
+    if @viewcache[r] != lines
+      @editor.mode.reset! if @editor.mode.respond_to?(:reset!)
+      @viewcache[r]   = lines
+      @rendercache[r] = @editor.mode.call(lines.join("\n")).split("\n").map{|l| AnsiTerm::String.new(l) }
+    end
+
+    @rendercache[r].enum_for(:zip, lines, r)
+  end
+
+  def reset!
+    @viewcache   = Hash.new { "" }
+    @rendercache = Hash.new { AnsiTerm::String.new }
   end
 
   def render
     update_top
-    #clear_screen
-    h = height
-    w = width
+
+    h  = height
+    w  = width
     tw = text_width
 
     adjust_xoff(tw)
 
     max = @top+h
-    y = 0
-    @viewlines = []
+    lf = @opts[:show_lineno] ? LINENO_FORMAT : " "
+
     @out.resize(w,h)
     @out.cls
 
-    lf = @opts[:show_lineno] ? LINENO_FORMAT : ""
-    Array(buffer.lines(@top...max)).each_with_index do |line,cnt|
-      line = update_line(@top+cnt, line)
-      #line = buffer.lines(@top+cnt)
-      line = line.gsub("\t", TAB)
-      line = AnsiTerm::String.new(render_line(line))
-      line = render_marks(line, @top+y)
-
-      if line.length-@xoff > tw
-        line = line[@xoff..tw+@xoff]
-        end_marker =  CUTOFF_MARKER
-      else
-        line = (line[@xoff..-1]||"")
-        end_marker = EOL_MARKER unless line.length == 0
-      end
-
-      if @opts[:show_lineno]
-        line = "#{lf}%s#{end_marker}#{ANSI.el}" % [@top+cnt, line.to_str]
-      else
-        line = "#{line.to_str}#{end_marker}#{ANSI.el}"
-      end
-
+    mode_render(@top...max).
+    map {|line,orig,cnt| [update_line(cnt, line), orig,cnt]  }.
+    map {|line,orig,cnt| [render_marks(line, cnt),orig,cnt]  }.
+    map {|line,orig,cnt| [line[@xoff..tw+@xoff],  orig, cnt] }.
+    map {|line,orig,cnt|
+      orig ||= ""
+      end_marker =  orig.length-@xoff > tw ? CUTOFF_MARKER : ""
+      "#{lf % (cnt+1)}#{line}#{end_marker}#{ANSI.el}"
+    }.
+    zip((0..Float::INFINITY).lazy).each do |line,y|
       move(0,y)
       @out.print(line)
-
-      y+=1
     end
+
     render_status
     flush
   end
@@ -223,7 +278,12 @@ class View
     STDOUT.print(@out.to_s)
     @top  ||= 0
     @xoff ||= 0
-    ANSI.move_cursor((cursor.row||0)-@top,cursor.col+text_xoff-@xoff)
+    # FIXME
+    # Figure out where current x position in line actually is on screen
+    #
+    y = (cursor.row||0)
+    ANSI.move_cursor(y-@top,
+      editor.model.cursor_x(y, cursor.col-@xoff)+text_xoff)
     STDOUT.print "\e[?25h" # Show cursor
   end
 
