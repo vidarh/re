@@ -3,9 +3,14 @@
 # Bundler doesn't behave very well when
 # the current working dir is "unexpected"
 def bundler
-   pwd = Dir.pwd
-   Dir.chdir(File.dirname(__FILE__))
+    pwd = Dir.pwd
+  begin
+    Dir.chdir(File.dirname(__FILE__))
+  rescue Errno::ENOENT
+    #Dir.chdir(File.expand_path("~"))
+  end
    require 'bundler'
+   #require_relative 'vendor/bundle/bundler/setup'
    Bundler.require(:default)
    Dir.chdir(pwd)
 end
@@ -19,40 +24,28 @@ require 'drb/observer'
 
 require_relative 'lib/re/monkeys'
 require_relative 'lib/re/ansi'
-require_relative 'lib/re/buffer'
+#require_relative 'lib/re/buffer'
 require_relative 'lib/re/view'
-require_relative 'lib/re/cursor'
-require_relative 'lib/re/history'
+#require_relative 'lib/re/cursor'
+#require_relative 'lib/re/history'
 require_relative 'lib/re/modes'
-require_relative 'lib/re/controller'
 require_relative 'lib/re/indent'
 require_relative 'lib/re/editor'
 require_relative 'lib/re/server'
 require_relative 'lib/re/macros'
 require_relative 'lib/re/themes/base16_modified'
+require_relative 'lib/re/rouge/lexer'
+require_relative 'lib/re/themes/loader'
 
 require 'fcntl'
 
 if __FILE__ == $0
 
-  at_exit do
-    #
-    # FIXME: This is a workaround for Controller putting
-    # STDIN into nonblocking mode and not cleaning up, which
-    # causes all kind of problems with a variety of tools (more,
-    # docker etc.) which expect it to be blocking.
-    Controller.pause! do
-      stdin_flags = STDIN.fcntl(Fcntl::F_GETFL)
-      STDIN.fcntl(Fcntl::F_SETFL, stdin_flags & ~Fcntl::O_NONBLOCK) #
-      IO.console.cooked!
-      exit
-    end
-  end
-
   opts = Slop.parse do |o|
     o.bool    '-h', '--help', "This help"
     o.bool    '--list-buffers', 'List buffers'
     o.bool    '--list-themes', 'List registered themes'
+    o.string  '--run', 'Run the following editor function and exit'
     o.integer '--buffer', 'Open buffer with the given number'
     o.integer '--kill-buffer', 'Kill buffer with the given number'
     o.bool    '--server', 'Start as a server. Usually started automatically'
@@ -60,6 +53,7 @@ if __FILE__ == $0
     o.bool    '--readonly', 'Start as client, but do not start the controller at all'
     o.separator ''
     o.separator 'debug options:'
+    o.bool    '--args', "Output the parsed args"
     o.bool    '--local',  'Run without server'
     o.bool    '--profile', 'Enable Rubyprof profiling dumped to ~/.re-profile.html on exit'
     o.bool    '--intercept',  'Log operations to the server to ~/.re-oplog-[client pid].txt'
@@ -67,6 +61,12 @@ if __FILE__ == $0
 
   if opts.help?
     puts opts
+    exit(0)
+  end
+
+  if opts.args?
+    p opts
+    p ARGV
     exit(0)
   end
 
@@ -103,7 +103,7 @@ if __FILE__ == $0
     Thread.abort_on_exception = true
     Thread.new do
       loop do
-        sleep(5)
+        sleep(60)
         f.store_buffers
       end
     end
@@ -142,18 +142,18 @@ if __FILE__ == $0
         exit(0)
       end
 
-      STDOUT.print "\e[?2004h" # Enable bracketed paste
-      at_exit do
-        STDOUT.print "\e[?2004l" #Disable bracketed paste
-      end
-
       if opts[:buffer]
         $editor = Editor.new(buffer: f.new_buffer(opts[:buffer],""), factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
-        $editor.run
       else
         $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
-        $editor.run
       end
+
+      if opts[:run]
+        p $editor.send(opts[:run])
+        break
+      end
+
+      $editor.run
       break
     rescue DRb::DRbConnError => e
       p e
@@ -167,11 +167,7 @@ if __FILE__ == $0
     rescue SystemExit
       raise
     rescue Exception => e
-      #$editor&.ctrl&.mode = :pause
-      Controller.pause! do
-        puts ANSI.cls
-        binding.pry
-      end
+      $editor.pry(e)
     end
   end
 end
