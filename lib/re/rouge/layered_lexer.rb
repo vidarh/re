@@ -34,6 +34,10 @@ module Rouge
       super(opts)
     end
 
+    def tag
+      @lexer.tag
+    end
+
     def register_sublexer(qualname,b)
       @sublexers[qualname] = b
     end
@@ -66,15 +70,18 @@ module Rouge
       m[:_lexer] = @lexer.serialize
       @sublexers.each do |k,v|
         s = v.serialize
-        if !s.empty?
+        if s && !s.empty?
           m[k] = s
         end
       end
       m
     end
 
+    # FIXME: This is broken, in that it it resumes lexing
+    # from the outermost lexer
     def stream_tokens(str,&b)
-      @lexer.continue_lex(str) do |tok,val|
+      (@sublexers[@cur_lexer] || @lexer).continue_lex(str) do |tok,val|
+#        p tok.qualname
         if sl = @sublexers[@cur_lexer || tok.qualname]
           if sl.respond_to?(:lex)
             if @cur_lexer.nil?

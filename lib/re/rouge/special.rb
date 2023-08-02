@@ -6,6 +6,7 @@
 #
 # * (A),(B),(C),(D),(E),(Q) -- coloured; I use these for my TODO
 #    lists, specifying priority or (Q)uick.
+# * (1),(2),(3),(4),(5),(6),(7),(8),(9) ... -- coloured and bold
 # * Headings using one or more "#" are rendered more nicely.
 # * @WORD rendered in purple. E.g. @FOO or @BAR
 # * A certain set of words are implicitly treated as @word:
@@ -16,16 +17,18 @@
 #  * +WORD I use this for tagging things I want to stand out particulaly
 #    strongly.
 #  * Mark something **DONE** and the rest of the line uses strikeout
+#    FIXME: Currently not working.
 #  * "Quoted Strings" gets a different token.
+#    FIXME: The string1 state below.
 #  * Github style code-blocks:
-# 
+#
 # ```ruby
 #     def foo bar
 #     end
 # ```
 #
 # *test*
-#
+# _test_ __test__ **test**  *test*
 # *test
 # more*
 #
@@ -52,13 +55,14 @@
 #
 #
 
+# FIXME: Uncommenting the =begin line below breaks not just the syntax highlighting,
+# but the whole view.
 =begin
-
 # This is a test
-+FOO
-
-This is a test
-
+#+FOO
+#
+#This is a test
+#
 =end
 
 require_relative 'formatter'
@@ -76,19 +80,18 @@ class SpecialLexer < Rouge::RegexLexer
     rule /\"/, Literal::String::Double, :pop! #punctuation for string
   end
 
-  # FIXME: Something around here breaks the rendering.
-  # when editing this file.
-  #
   state :root do
     rule /\+[a-zA-Z]+/,         Comment::Special
     rule /\([ABCDEQ]\)/,        Comment::Special
+    rule /\([0-9]+\)/,          Comment::Special
     rule /FIXME|TBC|TBD|TODO/,  Comment::Special
+
     rule /@[a-zA-Z]+/,          Comment::Special
     rule /(\@[0-9:]+[a|p]?m?)/, Comment::Special
 
     rule /^[^"]*\"$/, Literal::String
     rule /["]$/, Literal::String::Double # Don't start a string at the end of a line
-    rule /["]/, Literal::String::Double, :string1 #punctuation for string
+    #rule /["]/, Literal::String::Double, :string1 #punctuation for string
 
     rule /\s+\n/, Error
 

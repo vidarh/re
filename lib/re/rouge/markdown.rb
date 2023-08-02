@@ -33,13 +33,15 @@ module Rouge
         rule /^#(?=[^#]).*?$/, Generic::Heading
         rule /^##*.*?$/, Generic::Subheading
 
+        # FIXME: This breaks because it's multi-line
         rule /^([ \t]*)(```|~~~)([^\n]*\n)((.*?)(\2))?/m do |m|
           name = m[3].strip
           sublexer = Lexer.find_fancy(name.empty? ? "guess" : name, m[5], @options)
           sublexer ||= PlainText.new(@options.merge(:token => Str::Backtick))
           sublexer.reset!
 
-          token Text, m[1]
+          #token Error
+          #token Text,        m[1]
           token Punctuation, m[2]
           token Name::Label, m[3]
           if m[5]
@@ -151,10 +153,10 @@ module Rouge
       end
 
       state :title do
-        rule /"#{edot}*?"/, Name::Namespace
+        #rule /"#{edot}*?"/, Name::Namespace
         rule /'#{edot}*?'/, Name::Namespace
         rule /[(]#{edot}*?[)]/, Name::Namespace
-        rule /\s*(?=["'()])/, Text
+        #rule /\s*(?=["'()])/, Text
         rule(//) { pop! }
       end
 
