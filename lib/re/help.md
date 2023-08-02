@@ -17,8 +17,19 @@ To get back to your buffer: [Meta + F2]
 [Ctrl X + r] Reload current buffer
 [Ctrl X + t] Select Rouge theme
 
+### CUA
+
+[Ctrl + right] Next word
+[Ctrl + left]  Previous word
+[Ctrl + up]    Page up
+[Ctrl + down]  Page down
+
+[f1]   Help
+
 ## Personal macros [FIXME: separate personal help]
 
+[f5]   Update matches
+[f6]   Paragraph reformat
 [f7]   Wordcount
 [f8]   Insert DONE header
 [f9]   Insert date
