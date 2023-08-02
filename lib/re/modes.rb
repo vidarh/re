@@ -1,5 +1,5 @@
 require 'reality/gitattributes'
-require_relative 'markdownsyntax'
+require_relative 'rouge/special'
 
 # # RougeMode #
 #
@@ -7,15 +7,18 @@ require_relative 'markdownsyntax'
 # reason not to.
 #
 class RougeMode
-  attr_reader :lexer, :formatter
+  attr_reader :lexer, :formatter, :theme
+
+  DEFAULT_THEME=Rouge::Theme.find("thankful_eyes").new
 
   def to_s
     @lexer.tag
   end
 
   def theme=(theme)
-    @themename = theme
-    @theme = Rouge::Theme.find(theme).new
+    @theme = Rouge::Theme.find(theme)&.new if theme.is_a?(String)
+    @theme ||= DEFAULT_THEME
+    @themename = @theme&.name
     @formatter = nil
   end
 
@@ -24,7 +27,7 @@ class RougeMode
   end
 
   def initialize(lexer,theme = "thankful_eyes")
-    @lexer = lexer
+    @lexer = lexer.is_a?(Class) ? lexer.new : lexer
     if !lexer.is_a?(Rouge::LayeredLexer)
       @lexer = Rouge::LayeredLexer.new(
         {
@@ -47,7 +50,17 @@ class RougeMode
   # as there's not just a single reasonable
   # default operation
   def call(str)
-    format(@lexer.lex(str||""))
+    format(@lexer.continue_lex(str||"")) # + @lexer.serialize.inspect)
+  end
+
+  def serialize
+    @lexer.serialize
+  end
+
+  def deserialize(states)
+    @lexer.deserialize(states)
+  rescue
+    []
   end
 
   def should_insert_prefix(c,prev)
@@ -58,72 +71,9 @@ class RougeMode
 end
 
 require_relative 'rouge/markdown'
-
-# FIXME: Unify / generalize this and MyRuby
-class MyMarkdown < Rouge::LayeredLexer
-  attr_reader :lexer
-
-  @@md = Rouge::Lexer.find("markdown")
-  @@sp = SpecialLexer.new
-
-  def initialize(opts = {})
-    super(opts.merge({
-            lexer: @@md.new,
-            sublexers: {"Text" => @@sp}
-            })
-          )
-  end
-
-  tag 'markdown'
-  aliases(*@@md.aliases)
-  filenames(*@@md.filenames)
-end
-
-class MyRuby < Rouge::LayeredLexer
-  @@rb = Rouge::Lexer.find("ruby")
-  @@sp = SpecialLexer.new
-  @@md = MyMarkdown
-
-  def initialize(opts = {})
-    @mf = ReFormatter.new(Rouge::Themes::ThankfulEyes.new)
-    @md = @@md.new
-
-    super({
-      lexer: @@rb.new,
-      sublexers: {"Text" => @@sp}
-    })
-
-    md = @md
-    mf = @mf
-    l = lambda do |t,text|
-      data = text.match(/([^#]*)#( ?)(.*)/) || ["",nil,"",text]
-      tail = AnsiTerm::String.new(data[2]+
-        String.new(mf.format(
-          md.continue_lex(data[3]+"\n")).
-            gsub("\n",""))
-      )
-      str  = data[1] ? "#{data[1]}\e[0;34m\u2503" : ""
-      if tail.length < 71
-        tail << " "*(71-tail.length)
-      end
-      tail.merge_attr_below(0..tail.length, AnsiTerm::Attr.new(bgcol: "48;2;10;10;32"))
-
-      [t,(str+tail.to_str)]
-    end
-
-    self.register_sublexer("Comment.Single", l)
-    self.register_sublexer("Comment.Multiline", l)
-  end
-
-  def self.detect?(text)
-    return true if text.shebang? 'ruby'
-  end
-
-  tag 'ruby'
-  aliases(*@@rb.aliases)
-  filenames(*@@rb.filenames)
-end
-
+#require_relative 'rouge/mymarkdown'
+require_relative 'rouge/ruby'
+require_relative 'rouge/myruby'
 
 class BufferList
   def to_s
