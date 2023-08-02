@@ -2,6 +2,7 @@ $uri="drbunix:#{ENV["HOME"]}/.re"
 
 class Buffer
   include DRb::DRbUndumped
+  include DRb::DRbObservable
 end
 
 class Editor
