@@ -2,6 +2,7 @@ require 'readline'
 require 'editorconfig'
 require_relative 'bufferfactory'
 require_relative 'bufferintercept'
+require_relative 'keymap'
 require 'editor_core'
 
 include EditorCore
