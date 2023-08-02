@@ -13,9 +13,9 @@ class ReFormatter < Rouge::Formatters::Terminal256
     if is_heading(tok)
       val = val.gsub("#","\u25B0")
     elsif tok.qualname == "Punctuation" && (val == "```" || val == "~~~")
-      #val = "\u256D\u2500\u2500"
-      #val = "\u2570\u2500\u2500"
       val = "\u2550"*3
+    elsif tok.qualname == "Punctuation" && val.strip == "*"
+      val.gsub!("*", "\u2022")
     end
     val
   end
@@ -42,17 +42,31 @@ class ReFormatter < Rouge::Formatters::Terminal256
 
   PRI_OVERRIDES = {
     "A" => style(fg: "#cd0000", bold: true),
-    "B" => style(fg: "#ee8040", bold: true),
+    "B" => style(fg: "#ee9050", bold: true),
     "C" => style(fg: "#cdcd00", bold: true),
     "D" => style(fg: "#40cd00", bold: true),
     "E" => style(fg: "#00ee00", bold: true),
-    "Q" => style(fg: "#0000ee", bold: true)
-  }
+    "Q" => style(fg: "#0000ee", bold: true),
+    "1" => style(fg: "#f00000", bold: true),
+    "2" => style(fg: "#d00000", bold: true),
+    "3" => style(fg: "#b00000", bold: true),
+    "4" => style(fg: "#900000", bold: true),
+    "5" => style(fg: "#800000", bold: true),
+    "6" => style(fg: "#700000", bold: true),
+    "7" => style(fg: "#600000", bold: true),
+    "8" => style(fg: "#500000", bold: true),
+    "9" => style(fg: "#400000", bold: true),
+  }.freeze
+
+  DAYS = Set["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
   TAG_OVERRIDE     = style(bg: "#eeee00", fg: "#000000")
+  DAYTAG_OVERRIDE  = style(bg: "#440077", fg: "#ffffff")
   TIME_OVERRIDE    = style(bg: "#ee00cd", fg: "#ffffff")
   SPECIAL_OVERRIDE = style(fg: "#ee00cd")
   CODE_OVERRIDE    = style(fg: "#ee00cd")
+
+  
 
   # @FIXME:
   # Push this up the chain... Really should propose extension to allow
@@ -75,7 +89,10 @@ class ReFormatter < Rouge::Formatters::Terminal256
         name += "|tag|#{val[1]}"
         style = TAG_OVERRIDE
       else
-        if ('0'..'9').member?(val[1])
+        if DAYS.member?(val[1..-1])
+          name += "|day"
+          style = DAYTAG_OVERRIDE
+        elsif ('0'..'9').member?(val[1])
           name += "|time"
           style = TIME_OVERRIDE
         else
