@@ -1,7 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    ansiterm (0.3.3)
+    ansiterm (0.4.2)
     citrus (3.0.2)
     coderay (1.1.3)
     editor_core (0.3.0)
