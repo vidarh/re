@@ -8,7 +8,7 @@ class Editor
   include DRb::DRbUndumped
 end
 
-class TermBuffer
+class AnsiTerm::Buffer
   include DRb::DRbUndumped
 end
 

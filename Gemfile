@@ -10,7 +10,7 @@ gem 'object_tracker', '~> 2.1'
 gem 'gitattributes'
 gem "keyboard_map"
 gem "file_writer"
-gem 'ansiterm', '~> 0.3.3'
+gem 'ansiterm'
 gem "editorconfig"
 gem "editor_core" #, path: "../editor_core"
 
