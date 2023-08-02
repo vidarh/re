@@ -36,22 +36,31 @@ ctrl_s     = "save"
 ctrl_y     = "yank"
 ctrl_z     = "suspend"
 
-ctrl_delete = "kill"
+ctrl_delete = "delete_next_word" # CUA
+meta_d      = "delete_next_word" # Emacs
+ctrl_backspace = "delete_prev_word" # CUA; does not currently work
+meta_backspace = "delete_prev_word" # Emacs
+meta_D      = "delete_prev_word" # FIXME: Temporary
+
 ctrl_insert = "yank"
 
-ctrl_left  = "prev_word" # FIXME: Not impl
-ctrl_right = "next_word" # FIXME: Not impl
+ctrl_left  = "prev_word"
+ctrl_right = "next_word"
 
 f1        = "help"
 meta_f1   = "open_at_cursor"
 meta_f2   = "open_previous"
 meta_f3   = "open_next_link" # FIXME: Not impl.
 
+mouse_doubleclick = "open_at_cursor"
+
 ## Multi-key combinations
 
 [keys.ctrl_x]
 b   = "switch_buffer"
+e   = "eval_expr"
 f   = "show_filename"
+h   = "toggle_highlight"
 l   = "toggle_lineno"
 p   = "pry"
 r   = "reload"
