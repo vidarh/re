@@ -89,7 +89,7 @@ class Modes
   def self.choose_by_gitattributes(filename)
     return nil if !filename
     path = filename
-    while path != "/" &&
+    while path != "/" && path != "."
       !File.exists?(path+"/.git")
 
       if File.exists?(path+"/.gitattributes")
