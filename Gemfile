@@ -12,6 +12,7 @@ gem "keyboard_map"
 gem "file_writer"
 gem 'ansiterm', '~> 0.3.3'
 gem "editorconfig"
+gem "editor_core" #, path: "../editor_core"
 
 gem "toml-rb"
 gem "pry"
