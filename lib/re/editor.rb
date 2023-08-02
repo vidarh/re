@@ -2,9 +2,11 @@ require 'readline'
 require 'editorconfig'
 require_relative 'bufferfactory'
 require_relative 'bufferintercept'
+require 'editor_core'
 
-class Editor
-  attr_reader :cursor, :buffer, :lastchar, :message, :mode, :search, :mark, :view, :ctrl,:model
+include EditorCore
+
+class Editor < EditorCore::Core
   attr_writer :message
 
   attr_accessor :intercept
