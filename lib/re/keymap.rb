@@ -8,7 +8,7 @@ class KeyBindings
   def self.user_map
     load_map('~/.config/re/keymap.toml')
   rescue
-    STDERR.puts 'WARNING: No user config found in ~/.config/re/keymap.toml'
+    $stderr.puts 'WARNING: No user config found in ~/.config/re/keymap.toml'
   end
 
   def self.global_map

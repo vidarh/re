@@ -35,10 +35,10 @@ module ANSI
   end
 
   def self.clear_screen
-    STDOUT.print ANSI.cls
+    $stdout.print ANSI.cls
   end
 
   def self.move_cursor(row, col)
-    STDOUT.print cup(row, col)
+    $stdout.print cup(row, col)
   end
 end

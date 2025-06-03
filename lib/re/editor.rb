@@ -349,10 +349,10 @@ class Editor < EditorCore::Core
   end
 
   def prompt(str = '')
-    STDOUT.puts ANSI.move_cursor(@view.height - 2, 0)
-    STDOUT.print ANSI.el
-    STDOUT.print str
-    STDOUT.flush
+    $stdout.puts ANSI.move_cursor(@view.height - 2, 0)
+    $stdout.print ANSI.el
+    $stdout.print str
+    $stdout.flush
   end
 
   def switch_buffer
@@ -538,7 +538,7 @@ class Editor < EditorCore::Core
 
   def quit
     reset_screen
-    STDOUT.puts ANSI.cls
+    $stdout.puts ANSI.cls
     IO.console.cooked!
     exit
   end

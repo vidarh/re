@@ -487,7 +487,7 @@ class View
   def flush
     buf = @out.to_s
     # $editor&.log("view: #{buf.size}")
-    STDOUT.print(buf)
+    $stdout.print(buf)
     @top  ||= 0
     @xoff ||= 0
   end

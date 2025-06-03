@@ -17,11 +17,11 @@ def with_connection(local:)
       p e
       if count > 1
         if count > 20
-          STDERR.puts 'Exiting'
+          $stderr.puts 'Exiting'
           exit(1)
         end
         sleep(0.5)
-        STDERR.puts "Failed to open connection to server. Trying to start (#{count})"
+        $stderr.puts "Failed to open connection to server. Trying to start (#{count})"
       end
       count += 1
       start_server(foreground: false)
@@ -37,7 +37,7 @@ def start_service
     fname = $uripath
     begin
       UNIXSocket.new(fname)
-      STDERR.puts "Another server is listening on #{fname}. Exiting"
+      $stderr.puts "Another server is listening on #{fname}. Exiting"
       exit 1
     rescue Errno::ECONNREFUSED
       File.unlink(fname)
@@ -45,7 +45,7 @@ def start_service
     retry
   end
 
-  STDERR.reopen STDOUT
+  $stderr.reopen $stdout
 
   Thread.abort_on_exception = true
   Thread.new do
@@ -65,9 +65,9 @@ def start_server(foreground: false)
       IO.new(1).close
       IO.new(2).close
 
-      STDIN.reopen('/dev/null', 'r')
-      STDOUT.reopen('/dev/null', 'a')
-      STDERR.reopen('/dev/null', 'a')
+      $stdin.reopen('/dev/null', 'r')
+      $stdout.reopen('/dev/null', 'a')
+      $stderr.reopen('/dev/null', 'a')
       $stdin = STDIN
       $stdout = STDOUT
       $stderr = STDERR

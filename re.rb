@@ -124,7 +124,7 @@ if __FILE__ == $0
   if opts.profile?
     at_exit do
       profile = RubyProf.stop
-      STDERR.puts 'Writing profile'
+      $stderr.puts 'Writing profile'
       File.open(File.expand_path('~/.re-profile.html'), 'w') do |f|
         printer = RubyProf::CallStackPrinter.new(profile)
         printer.print(f, {})
@@ -164,7 +164,7 @@ if __FILE__ == $0
             $fname = opts[:buffer]
           end
           if !$buffer
-            STDERR.puts "No such buffer: #{$fname}"
+            $stderr.puts "No such buffer: #{$fname}"
             exit(1)
           end
 
