@@ -120,5 +120,5 @@ class SpecialLexer < Rouge::RegexLexer
   #def deserialize(states)
   #  @rl.deserialize(states[:rl])
   #  @sh.deserialize(states[:sh])
-  #end 
+  #end
 end

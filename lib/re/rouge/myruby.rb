@@ -10,7 +10,7 @@ class CommentLexer < Rouge::Lexer
     @mf = ReFormatter.new(Rouge::Themes::ThankfulEyes.new)
     @md = MyMarkdown.new
   end
-  
+
   def stream_tokens(text)
     data = text.match(/([^#]*)#( ?)(.*)/) || ["",nil,"",text]
     tail = AnsiTerm::String.new(data[2]+

@@ -14,7 +14,7 @@ module Search
   rescue
     str
   end
-  
+
   def mark!; @mark = cursor; end
 
   def find_forward

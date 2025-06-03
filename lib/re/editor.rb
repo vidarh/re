@@ -181,7 +181,7 @@ class Editor < EditorCore::Core
     fname = nil
     retry
   end
-  
+
   def insert_file(fname = nil)
     filename, row, data = get_file_data(fname)
     if data
@@ -214,7 +214,7 @@ class Editor < EditorCore::Core
       break if beginning_of_file?
     end
   end
-  
+
 
   def help
     @helpers.open_new_window(File.expand_path("#{__FILE__}/../help.md"))
@@ -393,7 +393,7 @@ class Editor < EditorCore::Core
       numstr = gets("Line: ") do |str,ch|
         "0123456789".include?(ch[0])
       end
-      
+
       num = Integer(numstr) rescue nil
     end
 
@@ -410,7 +410,7 @@ class Editor < EditorCore::Core
     section = Integer(Array(section.split(":")).first) rescue nil
     goto_line(section) if section
   end
-  
+
   def select_theme(theme=nil)
     theme ||= @helpers.select_syntax_theme
     if theme && !theme.empty?
@@ -472,7 +472,7 @@ class Editor < EditorCore::Core
       first = false
     end
   end
-  
+
   def yank
     bulk_insert(@yank_buffer.lines(0..-1))
   end
@@ -673,10 +673,10 @@ class Editor < EditorCore::Core
     o[:highlight] = false
     toggle_highlight
   end
-  
+
   def pry(e=nil)
     require 'pry'
-    
+
     @ctrl.pause do
       #puts ANSI.cls
       binding.pry

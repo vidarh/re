@@ -44,4 +44,4 @@ def detect_file_or_url(line, col)
   return nil if !fname || !fname.first
   return fname.first, :file
 end
-  
+

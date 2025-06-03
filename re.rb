@@ -49,7 +49,7 @@ def bundler
 end
 
 bundler
-  
+
 #require 'pry'
 #binding.pry
 
@@ -80,7 +80,7 @@ require "rouge/gtk_theme_loader"
 
 if __FILE__ == $0
   require 'slop'
-  
+
   opts = Slop.parse do |o|
     o.bool    '-h', '--help', "This help"
     o.bool    '--list-buffers', 'List buffers'
@@ -139,7 +139,7 @@ if __FILE__ == $0
 
         # FIXME: For now this is to force testing of the DrB connection
         list = f.list_buffers
-        
+
         if opts.list_buffers?
           puts list
           exit(0)
@@ -154,7 +154,7 @@ if __FILE__ == $0
         if opts[:buffer]
           $buffer = f.new_buffer(opts[:buffer],"")
         end
-        
+
         if opts[:get]
           if !$buffer
             # FIXME: Add way to reference 'special' buffer names w/out expand_path
@@ -172,13 +172,13 @@ if __FILE__ == $0
           puts $buffer.lines(0..-1).join("\n")
           exit(0)
         end
-      
+
         if $buffer
           $editor = Editor.new(buffer: $buffer, factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
         else
           $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
         end
-        
+
         $> = IOToLog.new($log)
 
         if opts[:run]
@@ -186,7 +186,7 @@ if __FILE__ == $0
           break
         end
 
-        
+
         $editor.run
         Termcontroller::Controller.quit
         break

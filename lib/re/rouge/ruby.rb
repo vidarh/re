@@ -37,7 +37,7 @@ module Rouge
         rule /:"/, Str::Symbol, :simple_sym
       end
 
-      
+
 
       state :sexpbuiltin do
         rule /(malloc|calloc|printf|__ralloc|__array)\b/, Name::Builtin
@@ -80,7 +80,7 @@ module Rouge
         #  token Keyword
         #  push :sexpmain
         #end
-        
+
         rule /%([rqswQWxiI])?([^\w\s])/ do |m|
           open = Regexp.escape(m[2])
           close = Regexp.escape(delimiter_map[m[2]] || m[2])
@@ -434,7 +434,7 @@ module Rouge
 
       state :expr_start do
         #rule /\%s/, Error, :sexpmain
-        
+
         mixin :inline_whitespace
 
 

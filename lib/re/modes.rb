@@ -96,7 +96,7 @@ class Modes
     path = filename
     while path != "/" && path != "."
       !File.exist?(path+"/.git")
-    
+
       if File.exist?(path+"/.gitattributes")
         attrpath ||= path+"/.gitattributes"
       end

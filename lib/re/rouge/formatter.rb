@@ -79,7 +79,7 @@ class ReFormatter < Rouge::Formatters::Terminal256
   SPECIAL_OVERRIDE = style(fg: "#ee00cd")
   CODE_OVERRIDE    = style(fg: "#ee00cd")
 
-  
+
 
   # @FIXME:
   # Push this up the chain... Really should propose extension to allow

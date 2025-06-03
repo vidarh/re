@@ -15,7 +15,7 @@ require 'ansiterm'
 #  * Avoid the expensive attribute merging where possible.
 #  * Support \e]11;color\a to set background colour.
 #  * Scroll using VT100 sequences where possible
-# 
+#
 # But start by refactoring so it's reasonable to benchmark
 #
 class View
@@ -276,7 +276,7 @@ class View
     if line.index("\t").nil?
       return line
     end
-    
+
     pos = 0
     max = line.length
     col = 0
@@ -307,7 +307,7 @@ class View
     # Attributes affected by mode changes
     @gutter_attr = AnsiTerm::Attr.new(flags: 0, bgcol: [
       48,2,*(adjust_color(@bg, 0.8) || GUTTER)])
-      
+
     @cursor_attr = AnsiTerm::Attr.new(
       bgcol: [48,2,*hexcol(get_style_option("cursor", :bg, default: "#802080"))],
       fgcol: [38,2,*hexcol(get_style_option("cursor", :fg, default: "#ffffff"))],
@@ -338,7 +338,7 @@ class View
       line.set_attr(m+2..-1, @gutter_attr)
     end
   end
-  
+
   def render
     return if !buffer
     update_top
@@ -372,7 +372,7 @@ class View
     @moderender.mode = opts[:highlight] ? @editor.mode : nil
     @moderender.render(@top...max).
     map do |line,orig,cnt|
-      
+
       move(cnt-@top+1,0)
       if opts[:show_lineno]
         if cnt == cursor.row
@@ -391,10 +391,10 @@ class View
 
       line = update_line(cnt, line) if line
       line = render_marks(line, cnt)
-      
+
       # Truncate line
       line = line[@xoff..tw+@xoff] || AnsiTerm::String.new
-      
+
       if line.length <= tw
         l = line.length
         pad(line, l, tw)
@@ -408,7 +408,7 @@ class View
       if orig.to_s.length-@xoff > tw
         line << CUTOFF_MARKER
       end
-      
+
       render_gutter(line)
 
       @out.print(line)
@@ -437,7 +437,7 @@ class View
   def render_curline_highlight
     #@out.move_cursor(40,0)
     #@out.print("== #{text_width} ==")
-    
+
     lfw = text_xoff-1
     max = max_line_length ? max_line_length : text_width
     # Mark current line

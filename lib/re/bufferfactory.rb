@@ -43,7 +43,7 @@ class BufferFactory
   def open(filename, data = "\n", created_at = Time.at(0))
     base = File.basename(filename)
 
-    data = lines_from_data(data)  
+    data = lines_from_data(data)
     buffer = @server.new_buffer(filename, data, created_at)
 
     if base == "buffer-list"

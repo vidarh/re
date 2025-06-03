@@ -30,7 +30,7 @@ module Rouge
         rule /[*][*]/, Generic::Strong, :pop!
         rule edot, Generic::Strong
       end
-      
+
       state :strd do
         rule /^#/, Error, :pop!
         rule /"/, Literal::String::Double, :pop!
@@ -69,7 +69,7 @@ module Rouge
             end
           end
         end
-        
+
         rule /^([ \t]*)(```|~~~)([^\n]*\n)((.*?)(\2))?/m do |m|
           name = m[3].strip
           sublexer = Lexer.find_fancy(name.empty? ? "guess" : name, m[5], @options)

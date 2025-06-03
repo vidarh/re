@@ -54,7 +54,7 @@ def start_service
       $factory.store_buffers
     end
   end
-  
+
   DRb.thread.join
 end
 
@@ -65,14 +65,14 @@ def start_server(foreground: false)
       IO.new(0).close
       IO.new(1).close
       IO.new(2).close
-      
+
       STDIN.reopen("/dev/null","r")
       STDOUT.reopen("/dev/null","a")
       STDERR.reopen("/dev/null","a")
       $stdin = STDIN
       $stdout = STDOUT
       $stderr = STDERR
-      
+
       $0 = "re-server"
       start_service
     end

@@ -6,7 +6,7 @@ module Rouge
   # to specific types of tokens returned from the main lexer.
   #
   # Example use (transforms trailing whitespace on a line to `Error` tokens):
-  # 
+  #
   # ```ruby
   # class TrailingWhitespaceLexer < Rouge::RegexLexer
   #   state :root do

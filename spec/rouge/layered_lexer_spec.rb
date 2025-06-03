@@ -15,7 +15,7 @@ RSpec.describe Rouge::LayeredLexer do
 
   let (:ruby_lexer) { Rouge::Lexer.find("ruby").new }
   let (:c_lexer)    { Rouge::Lexer.find("c").new }
-  
+
   let (:error_lexer) {
     Rouge::LayeredLexer.new(
       {
@@ -39,7 +39,7 @@ RSpec.describe Rouge::LayeredLexer do
     # First let's check it *doesn't* do this with the normal ruby lexer
     lex = ruby_lexer.lex(error_program).to_a
     expect(lex[3]).to eq([Rouge::Token::Tokens::Name::Class, "NotAllowedButRestIs"])
-    
+
     lex = error_lexer.lex(error_program).to_a
     expect(lex[3]).to eq([Rouge::Token::Tokens::Error, "NotAllowed"])
     expect(lex[4]).to eq([Rouge::Token::Tokens::Text, "ButRestIs "])

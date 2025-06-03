@@ -1,6 +1,6 @@
 #
 # # Render ranges of text lines
-# 
+#
 # Goals:
 # * Caching happens on server.
 # * Background thread does re-render for major changes.
@@ -29,7 +29,7 @@ class ModeRender
     @debug = debug
     reset!
   end
-  
+
   def reset!
     @viewcache   = Hash.new { "" }
     @rendercache = Hash.new { AnsiTerm::String.new }
@@ -47,7 +47,7 @@ class ModeRender
   def cached(i)
     @rendercache[i]
   end
-  
+
   # FIXME: Instead of doing this on line by line
   # basis, do it by block, and use state cache.
   # Must update state cache until they matches what was
@@ -64,7 +64,7 @@ class ModeRender
       if i > 0 && @statecache[i-1]
         @mode.deserialize(@statecache[i-1])
       end
-          
+
       mode_render(i,l)
       @viewcache[i] = l
 
@@ -118,7 +118,7 @@ class ModeRender
   def render(r)
     @lines = @buffer.lines(r)
     @r = r
-    
+
     if @rendercache.empty?
       render_all(r.last)
     end

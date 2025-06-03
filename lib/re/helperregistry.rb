@@ -29,7 +29,7 @@ class HelperRegistry
   # spawning a Ruby program from Ruby wildly unreliable
   # unless you clear out as much as possible
   def start(cmd)
-    dir = 
+    dir =
     spawn(
       { "HOME" => ENV["HOME"],
       "DISPLAY" => ENV["DISPLAY"],
@@ -47,7 +47,7 @@ class HelperRegistry
   def select_section(buffer)
     `select-section #{buffer}`
   end
-  
+
   def select_buffer
     `select-buffer 2>/dev/null`
   end
@@ -69,7 +69,7 @@ class HelperRegistry
     $log.debug("open_new_window: #{cmd}")
     start(cmd)
   end
-    
+
   def split_vertical(buffer)
     system("split-vertical 2>>/tmp/relog.txt term e #{bufferarg(buffer)}")
   end
