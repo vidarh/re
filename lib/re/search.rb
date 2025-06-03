@@ -46,7 +46,7 @@ module Search
   end
 
   def find(str = nil)
-    @search = str || @search || ""
+    @search = str || @search || ''
 
     update = -> do
       render
@@ -66,20 +66,20 @@ module Search
         cmd,char = @ctrl.handle_input
         case cmd
         when :ctrl_c, :esc
-          @search = ""
-          @message = "Search terminated."
+          @search = ''
+          @message = 'Search terminated.'
           break
         when :backspace
           @search.slice!(-1)
           find_forward
         when :enter
-          @message = "Search paused. To cont. press ^f; To cancel ^f + ^c"
+          @message = 'Search paused. To cont. press ^f; To cancel ^f + ^c'
           break
         when :ctrl_k
-          @search = ""
+          @search = ''
         when :ctrl_f
           if !find_next
-            @message = "Wrapped around; ^f to restart search"
+            @message = 'Wrapped around; ^f to restart search'
             break
           end
         when :char

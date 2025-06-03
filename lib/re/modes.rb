@@ -9,7 +9,7 @@ require_relative 'rouge/special'
 class RougeMode
   attr_reader :lexer, :formatter, :theme
 
-  DEFAULT_THEME=Rouge::Theme.find("thankful_eyes").new
+  DEFAULT_THEME=Rouge::Theme.find('thankful_eyes').new
 
   def to_s
     @lexer.tag
@@ -26,13 +26,13 @@ class RougeMode
     @formatter ||= ReFormatter.new(@theme)
   end
 
-  def initialize(lexer,theme = "thankful_eyes")
+  def initialize(lexer,theme = 'thankful_eyes')
     @lexer = lexer.is_a?(Class) ? lexer.new : lexer
     if !lexer.is_a?(Rouge::LayeredLexer)
       @lexer = Rouge::LayeredLexer.new(
         {
           lexer: @lexer,
-          sublexers: {"Text" => SpecialLexer.new}
+          sublexers: {'Text' => SpecialLexer.new}
         }
       )
     end
@@ -41,7 +41,7 @@ class RougeMode
   end
 
   def format(l)
-    formatter.format(l||"")
+    formatter.format(l||'')
 #  rescue Exception => e
 #    "ERROR: #{e.inspect}"
   end
@@ -50,7 +50,7 @@ class RougeMode
   # as there's not just a single reasonable
   # default operation
   def call(str)
-    format(@lexer.continue_lex(str||"")) # + @lexer.serialize.inspect)
+    format(@lexer.continue_lex(str||'')) # + @lexer.serialize.inspect)
   end
 
   def serialize
@@ -68,8 +68,8 @@ class RougeMode
     when 'ruby'
       return '#' if prev[c] == '#'
     when 'markdown'
-      return "* " if prev[c-1..c+1] == ' * '
-      return "* " if c==0 && prev[0..1] == '* '
+      return '* ' if prev[c-1..c+1] == ' * '
+      return '* ' if c==0 && prev[0..1] == '* '
     end
     return nil
   end
@@ -82,11 +82,11 @@ require_relative 'rouge/myruby'
 
 class BufferList
   def to_s
-    "buffer-list"
+    'buffer-list'
   end
 
   def call str
-    "Buffer List!"
+    'Buffer List!'
   end
 end
 
@@ -94,17 +94,17 @@ class Modes
   def self.choose_by_gitattributes(filename)
     return nil if !filename
     path = filename
-    while path != "/" && path != "."
-      !File.exist?(path+"/.git")
+    while path != '/' && path != '.'
+      !File.exist?(path+'/.git')
 
-      if File.exist?(path+"/.gitattributes")
-        attrpath ||= path+"/.gitattributes"
+      if File.exist?(path+'/.gitattributes')
+        attrpath ||= path+'/.gitattributes'
       end
       path = File.dirname(path)
     end
 
-    if File.exist?(path+"/.git/info/attributes")
-      attrpath = path+"/.git/info/attributes"
+    if File.exist?(path+'/.git/info/attributes')
+      attrpath = path+'/.git/info/attributes'
       relpath  = path
     end
 
@@ -115,8 +115,8 @@ class Modes
 
     relpath ||= path
 
-    if attributes && attrs = attributes.attributes(filename.gsub(/\a{relpath}/,""))
-      lang = attrs["language"] || attrs["gitlab-language"]
+    if attributes && attrs = attributes.attributes(filename.gsub(/\a{relpath}/,''))
+      lang = attrs['language'] || attrs['gitlab-language']
     end
 
     choose_by_string(lang)

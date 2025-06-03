@@ -37,7 +37,7 @@ class BufferFactory
   end
 
   def get_buffer(buf)
-    @server.new_buffer(buf.to_i, "")
+    @server.new_buffer(buf.to_i, '')
   end
 
   def open(filename, data = "\n", created_at = Time.at(0))
@@ -46,7 +46,7 @@ class BufferFactory
     data = lines_from_data(data)
     buffer = @server.new_buffer(filename, data, created_at)
 
-    if base == "buffer-list"
+    if base == 'buffer-list'
       set_buffer_contents(buffer,Cursor.new(0,0), @server.list_buffers)
     end
 

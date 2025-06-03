@@ -4,7 +4,7 @@ class BufferIntercept
   @@log = nil
 
   def log
-    @@log ||= File.open(File.expand_path("~/.re-oplog-#{Process.pid}.txt"),"w")
+    @@log ||= File.open(File.expand_path("~/.re-oplog-#{Process.pid}.txt"),'w')
   end
 
   def initialize(buffer)
@@ -13,7 +13,7 @@ class BufferIntercept
   end
 
   def method_missing(*args,&block)
-    log.puts(@name+"| "+args.inspect)
+    log.puts(@name+'| '+args.inspect)
     log.flush
     @buffer.send(*args,&block)
   end

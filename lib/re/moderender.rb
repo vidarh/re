@@ -31,7 +31,7 @@ class ModeRender
   end
 
   def reset!
-    @viewcache   = Hash.new { "" }
+    @viewcache   = Hash.new { '' }
     @rendercache = Hash.new { AnsiTerm::String.new }
     @statecache ||= Hash.new { {} }
   end

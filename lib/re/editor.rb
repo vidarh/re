@@ -35,35 +35,35 @@ class Editor < EditorCore::Core
   end
 
   def inspect
-    "<Editor>"
+    '<Editor>'
   end
 
   def read_yn
     @ctrl.raw do
       loop do
         cmd, char = @ctrl.handle_input
-        return char if cmd == :char && (char == "y" || char == "n")
+        return char if cmd == :char && (char == 'y' || char == 'n')
       end
     end
   end
 
   def load_config
     @config = EditorConfig.load_file(@filename)
-    if @config.dig("rouge_theme")
-      @view.opts[:theme] = @config["rouge_theme"]
+    if @config.dig('rouge_theme')
+      @view.opts[:theme] = @config['rouge_theme']
     end
-    if @config.dig("background_color")
-      @view.opts[:background_color] = @config["background_color"]
+    if @config.dig('background_color')
+      @view.opts[:background_color] = @config['background_color']
     end
-    if @config.dig("show_lineno")
-      @view.opts[:show_lineno] = @config["show_lineno"] == "true"
+    if @config.dig('show_lineno')
+      @view.opts[:show_lineno] = @config['show_lineno'] == 'true'
     end
-    if @config.dig("left_margin")
-      @view.opts[:left_margin] = @config["left_margin"] == "true"
+    if @config.dig('left_margin')
+      @view.opts[:left_margin] = @config['left_margin'] == 'true'
     end
 
-    if l = @config.dig("max_line_length")
-      @view.opts[:max_line_length] = l == "off" ? nil : l.to_i
+    if l = @config.dig('max_line_length')
+      @view.opts[:max_line_length] = l == 'off' ? nil : l.to_i
     end
     @view.reset! unless @headless
   end
@@ -86,7 +86,7 @@ class Editor < EditorCore::Core
 
     if changed_on_disk?
       prompt("File changed on disk (buffer loaded at=#{@buffer.created_at}, file modified at=#{File.mtime(@filename)}. Reload? (y/n)")
-      reload if read_yn == "y"
+      reload if read_yn == 'y'
     end
   end
 
@@ -108,7 +108,7 @@ class Editor < EditorCore::Core
     return if !fname
     if type == :file
       path = File.dirname(self.filename)
-      return path+"/"+fname.to_s, :file
+      return path+'/'+fname.to_s, :file
     end
     return fname, type
   end
@@ -140,16 +140,16 @@ class Editor < EditorCore::Core
     return url_open(f) if type == :url
 
     if File.directory?(f)
-      if File.exists?(f+".md")
-        f += ".md"
+      if File.exists?(f+'.md')
+        f += '.md'
       else
-        f += "/index.md"
+        f += '/index.md'
       end
     end
 
     if !File.exists?(f)
-      if[-3..-1] != ".md"
-        f += ".md"
+      if[-3..-1] != '.md'
+        f += '.md'
       end
     end
     $log.debug(" - file after existence checks: '#{f}'")
@@ -171,9 +171,9 @@ class Editor < EditorCore::Core
 
   def get_file_data(fname = nil)
     fname ||= @helpers.select_file
-    return nil if fname == "" || fname.nil?
+    return nil if fname == '' || fname.nil?
     fname = fname.strip
-    filename,row = fname.split(":")
+    filename,row = fname.split(':')
     data      = @factory.read_file_data(filename)
     return filename, row, data
   rescue Errno::EISDIR
@@ -233,7 +233,7 @@ class Editor < EditorCore::Core
     @intercept = intercept
     @filename = nil
 
-    raise "Requires a factory" if !factory
+    raise 'Requires a factory' if !factory
     @factory  = BufferFactory.new(factory)
 
     @headless = headless
@@ -252,15 +252,15 @@ class Editor < EditorCore::Core
       if filename
         open(filename)
       else
-        open_buffer("(*scratch*)","")
+        open_buffer('(*scratch*)','')
       end
     end
 
-    @message  = ""
-    @search   = ""
+    @message  = ''
+    @search   = ''
     @lastcmd  = nil
-    @yank_buffer = @factory.open("*yank*")
-    @debug_buffer = @factory.open("*debug*")
+    @yank_buffer = @factory.open('*yank*')
+    @debug_buffer = @factory.open('*debug*')
   end
 
   def resize
@@ -268,8 +268,8 @@ class Editor < EditorCore::Core
   end
 
   def log *data
-    @log ||= Logger.new(File.open(File.expand_path("~/.re-log.txt"),"a+"))
-    @log.debug(data.join(" "))
+    @log ||= Logger.new(File.open(File.expand_path('~/.re-log.txt'),'a+'))
+    @log.debug(data.join(' '))
   end
 
   # FIXME: Track which buffer.
@@ -286,7 +286,7 @@ class Editor < EditorCore::Core
     @mode = Modes.choose(
       filename: @filename,
       source: src,
-      language: @config.dig("source_language")
+      language: @config.dig('source_language')
     )
 
     if @chosentheme
@@ -299,9 +299,9 @@ class Editor < EditorCore::Core
 
     src.each do |line|
       if line && line.match(/ re: ([a-zA-Z:]+)/)
-        $1.split(":").each do |opt|
+        $1.split(':').each do |opt|
           case opt
-          when "nolineno"
+          when 'nolineno'
             view.opts[:show_lineno] = false
           end
         end
@@ -335,7 +335,7 @@ class Editor < EditorCore::Core
     end
   end
 
-  def gets(str = "")
+  def gets(str = '')
     prompt(str)
     # FIXME: rb-readline fails to echo haracters here.
     str = @ctrl.pause { Readline::readline }
@@ -343,7 +343,7 @@ class Editor < EditorCore::Core
     str
   end
 
-  def prompt(str = "")
+  def prompt(str = '')
     STDOUT.puts ANSI.move_cursor(@view.height-2,0)
     STDOUT.print ANSI.el
     STDOUT.print str
@@ -370,9 +370,9 @@ class Editor < EditorCore::Core
         @cursor = @cursor.move(@buffer, y+@view.top-2, x-@view.text_xoff+@view.xoff-1)
       end
     when 1 # Middle button
-      @message="1"
+      @message='1'
     when 2 # Right button
-      @message="2"
+      @message='2'
     when 64 # Scroll wheel up
       view_up(2)
       @do_refresh=true
@@ -390,8 +390,8 @@ class Editor < EditorCore::Core
 
   def goto_line(num = nil)
     if num.nil?
-      numstr = gets("Line: ") do |str,ch|
-        "0123456789".include?(ch[0])
+      numstr = gets('Line: ') do |str,ch|
+        '0123456789'.include?(ch[0])
       end
 
       num = Integer(numstr) rescue nil
@@ -407,7 +407,7 @@ class Editor < EditorCore::Core
 
   def select_section
     section = @helpers.select_section(buffer.buffer_id)
-    section = Integer(Array(section.split(":")).first) rescue nil
+    section = Integer(Array(section.split(':')).first) rescue nil
     goto_line(section) if section
   end
 
@@ -440,7 +440,7 @@ class Editor < EditorCore::Core
   def kill
     @yank_cursor ||= Cursor.new(0,0)
     if @yank_mark != cursor
-      @yank_buffer.replace_contents(cursor,"")
+      @yank_buffer.replace_contents(cursor,'')
       @yank_cursor = Cursor.new(0,0)
     end
     if @cursor.col >= @buffer.lines(@cursor.row).length
@@ -485,7 +485,7 @@ class Editor < EditorCore::Core
     return 0 if row < 0
     last_line = @buffer.lines(row)
     pos = 0
-    while(last_line[pos] == " ")
+    while(last_line[pos] == ' ')
       pos += 1
     end
     return nil if pos == last_line.length
@@ -513,7 +513,7 @@ class Editor < EditorCore::Core
     if !@ctrl
       sleep(0.1)
       @do_refresh = true
-      @message = "Read Only View"
+      @message = 'Read Only View'
       return
     end
 
@@ -581,7 +581,7 @@ class Editor < EditorCore::Core
   end
 
   def break_line
-    if @config.dig("soft_break") && cursor_at_soft_break?
+    if @config.dig('soft_break') && cursor_at_soft_break?
       # FIXME: this will move the cursor,
       # without preserving position within the word
       off = prev_word

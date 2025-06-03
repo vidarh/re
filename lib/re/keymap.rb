@@ -6,13 +6,13 @@ class KeyBindings
   end
 
   def self.user_map
-    load_map("~/.config/re/keymap.toml")
+    load_map('~/.config/re/keymap.toml')
   rescue
-    STDERR.puts "WARNING: No user config found in ~/.config/re/keymap.toml"
+    STDERR.puts 'WARNING: No user config found in ~/.config/re/keymap.toml'
   end
 
   def self.global_map
-    load_map(File.dirname(__FILE__)+"/keymap.toml")
+    load_map(File.dirname(__FILE__)+'/keymap.toml')
   end
 
   global_keys = global_map #rescue {keys: {}}

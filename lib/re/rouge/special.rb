@@ -74,8 +74,8 @@ $rules = [
 
 class SpecialLexer < Rouge::RegexLexer
   def initialize
-    @rl = Rouge::Lexer.find("ruby")
-    @sh = Rouge::Lexer.find("shell")
+    @rl = Rouge::Lexer.find('ruby')
+    @sh = Rouge::Lexer.find('shell')
   end
 
   state :string1 do

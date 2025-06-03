@@ -4,8 +4,8 @@
 module Rouge
   module Lexers
     class Ruby < RegexLexer
-      title "Ruby"
-      desc "The Ruby programming language (ruby-lang.org)"
+      title 'Ruby'
+      desc 'The Ruby programming language (ruby-lang.org)'
       tag 'ruby'
       aliases 'rb'
       filenames '*.rb', '*.ruby', '*.rbw', '*.rake', '*.gemspec', '*.podspec',

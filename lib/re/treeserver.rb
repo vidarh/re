@@ -16,13 +16,13 @@ require 'json'
 
 class Factory
   def initialize
-    @bufstore = File.expand_path("~/.re-buffers")
+    @bufstore = File.expand_path('~/.re-buffers')
     @m = Mutex.new
 
     puts "Loading buffers from #{@bufstore}"
 
     begin
-      File.open(@bufstore,"r") do |f|
+      File.open(@bufstore,'r') do |f|
         @buffers = JSON.load(f)
       end
     rescue Exception => e
@@ -47,13 +47,13 @@ class Factory
 
   def list_buffers
     @buffers.collect{|buf|
-      [buf.buffer_id, buf.name].join(" ")
+      [buf.buffer_id, buf.name].join(' ')
     }.join("\n")
   end
 
   def store_buffers
-    puts "Storing buffers"
+    puts 'Storing buffers'
     FileWriter.write(@bufstore,JSON.generate(buffers.map(&:as_json)))
-    puts "Stored."
+    puts 'Stored.'
   end
 end

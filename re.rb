@@ -1,11 +1,11 @@
 #!/usr/bin/env ruby
 
-$: << File.expand_path("./stub")
+$: << File.expand_path('./stub')
 $: << File.expand_path(File.dirname(__FILE__))
 
 require 'logger'
 # FIXME: Not the right place
-$log = Logger.new(File.expand_path("~/.re.log"))
+$log = Logger.new(File.expand_path('~/.re.log'))
 
 class IOToLog
   def initialize(log)
@@ -13,7 +13,7 @@ class IOToLog
   end
 
   def write(*args)
-    @log.debug(caller[0..2].join(" / "))
+    @log.debug(caller[0..2].join(' / '))
     @log.debug(args.join)
   end
 
@@ -76,13 +76,13 @@ require_relative 'lib/re/server'
 require_relative 'lib/re/macros'
 require_relative 'lib/re/themes/base16_modified'
 require_relative 'lib/re/rouge/lexer'
-require "rouge/gtk_theme_loader"
+require 'rouge/gtk_theme_loader'
 
 if __FILE__ == $0
   require 'slop'
 
   opts = Slop.parse do |o|
-    o.bool    '-h', '--help', "This help"
+    o.bool    '-h', '--help', 'This help'
     o.bool    '--list-buffers', 'List buffers'
     o.bool    '--list-themes', 'List registered themes'
     o.string  '--run', 'Run the following editor function and exit'
@@ -95,7 +95,7 @@ if __FILE__ == $0
     o.bool    '--readonly', 'Start as client, but do not start the controller at all'
     o.separator ''
     o.separator 'debug options:'
-    o.bool    '--args', "Output the parsed args"
+    o.bool    '--args', 'Output the parsed args'
     o.bool    '--local',  'Run without server'
     o.bool    '--profile', 'Enable Rubyprof profiling dumped to ~/.re-profile.html on exit'
     o.bool    '--intercept',  'Log operations to the server to ~/.re-oplog-[client pid].txt'
@@ -123,8 +123,8 @@ if __FILE__ == $0
   if opts.profile?
     at_exit do
       profile = RubyProf.stop
-      STDERR.puts "Writing profile"
-      File.open(File.expand_path("~/.re-profile.html"),"w") do |f|
+      STDERR.puts 'Writing profile'
+      File.open(File.expand_path('~/.re-profile.html'),'w') do |f|
         printer = RubyProf::CallStackPrinter.new(profile)
         printer.print(f, {})
       end
@@ -152,7 +152,7 @@ if __FILE__ == $0
         end
 
         if opts[:buffer]
-          $buffer = f.new_buffer(opts[:buffer],"")
+          $buffer = f.new_buffer(opts[:buffer],'')
         end
 
         if opts[:get]

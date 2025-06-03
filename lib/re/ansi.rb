@@ -13,22 +13,22 @@ module ANSI
   def self.sgr(*n)
     n = n.collect{|c| (c.is_a?(Symbol) ? @@sgr[c] : nil) || c}
     if block_given?
-      csi("m",*n)+yield+csi("m", 0)
+      csi('m',*n)+yield+csi('m', 0)
     else
-      csi("m",*n)
+      csi('m',*n)
     end
   end
 
   def self.cup(row,col)
-    csi("H",row+1,col+1)
+    csi('H',row+1,col+1)
   end
 
   def self.ed n=0
-    csi("J",n)
+    csi('J',n)
   end
 
   def self.el n=0
-    csi("K",n)
+    csi('K',n)
   end
 
   def self.cls

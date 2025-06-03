@@ -13,20 +13,20 @@ def detect_file_or_url(line, col)
 
   # *First* we try to rely on URI's very extensive
   # regex:
-  start = line.rindex(URI.regexp(["https", "http", "mailto", "ftp"]), col)
+  start = line.rindex(URI.regexp(['https', 'http', 'mailto', 'ftp']), col)
 
   start = line.rindex(/[<)(\[']/, col) if !start
   start = line.rindex(/www\./, col) if !start
 
   return if !start
 
-  if line[start] == "["
-    start = line.index("](")
+  if line[start] == '['
+    start = line.index('](')
     return if !start
     start += 1
   end
 
-  if line[start] == "<" || line[start] == "("
+  if line[start] == '<' || line[start] == '('
     start += 1
   end
 
@@ -34,10 +34,10 @@ def detect_file_or_url(line, col)
   stop = line.length if !stop
 
   stop-=1
-  fname = line[start..stop].split(":")
+  fname = line[start..stop].split(':')
   if fname.length > 1
-    if fname != "file"
-      return fname.join(":"), :url
+    if fname != 'file'
+      return fname.join(':'), :url
     end
     fname.shift
   end

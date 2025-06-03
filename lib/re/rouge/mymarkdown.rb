@@ -4,13 +4,13 @@ require_relative 'special'
 class MyMarkdown < Rouge::LayeredLexer
   attr_reader :lexer
 
-  @@md = Rouge::Lexer.find("markdown")
+  @@md = Rouge::Lexer.find('markdown')
   @@sp = SpecialLexer.new
 
   def initialize(opts = {})
     super(opts.merge({
             lexer: @@md.new,
-            sublexers: {"Text" => @@sp}
+            sublexers: {'Text' => @@sp}
             })
           )
   end

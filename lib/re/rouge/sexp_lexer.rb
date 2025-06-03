@@ -10,7 +10,7 @@
 # highlighting elsewhere.
 #
 class SexpLexer < Rouge::RegexLexer
-  title "Sexp"
+  title 'Sexp'
   desc "S-expressions as used by vidarh's Ruby compiler"
   tag 'vhsexp'
 

@@ -31,15 +31,15 @@ class HelperRegistry
   def start(cmd)
     dir =
     spawn(
-      { "HOME" => ENV["HOME"],
-      "DISPLAY" => ENV["DISPLAY"],
-      "LANG" => ENV["LANG"],
-      "PATH" => ENV["PATH"]
+      { 'HOME' => ENV['HOME'],
+      'DISPLAY' => ENV['DISPLAY'],
+      'LANG' => ENV['LANG'],
+      'PATH' => ENV['PATH']
       },
       cmd,
       {
         unsetenv_others: true,
-        chdir: File.expand_path("~")
+        chdir: File.expand_path('~')
       }
     )
   end
@@ -75,14 +75,14 @@ class HelperRegistry
   end
 
   def split_vertical_term
-    system("split-vertical term")
+    system('split-vertical term')
   end
 
   def split_horizontal(buffer_id)
     system("split-horizontal 2>>/tmp/relog.txt term e --buffer #{buffer_id}")
   end
 
-  def split_horizontal_term(cmd = "")
+  def split_horizontal_term(cmd = '')
     system("split-horizontal term -e #{cmd}")
   end
 

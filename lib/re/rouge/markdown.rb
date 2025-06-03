@@ -4,8 +4,8 @@
 module Rouge
   module Lexers
     class Markdown < RegexLexer
-      title "Markdown"
-      desc "Markdown, a light-weight markup language for authors"
+      title 'Markdown'
+      desc 'Markdown, a light-weight markup language for authors'
 
       tag 'markdown'
       aliases 'md', 'mkd'
@@ -55,7 +55,7 @@ module Rouge
           token Punctuation, m[2]
           token Name::Label, m[3]
           name = m[3].strip
-          sublexer = Lexer.find_fancy(name.empty? ? "guess" : name, m[5], @options)
+          sublexer = Lexer.find_fancy(name.empty? ? 'guess' : name, m[5], @options)
           sublexer ||= PlainText.new(@options.merge(:token => Str::Backtick))
           sublexer.reset!
           push do
@@ -72,7 +72,7 @@ module Rouge
 
         rule /^([ \t]*)(```|~~~)([^\n]*\n)((.*?)(\2))?/m do |m|
           name = m[3].strip
-          sublexer = Lexer.find_fancy(name.empty? ? "guess" : name, m[5], @options)
+          sublexer = Lexer.find_fancy(name.empty? ? 'guess' : name, m[5], @options)
           sublexer ||= PlainText.new(@options.merge(:token => Str::Backtick))
           sublexer.reset!
 

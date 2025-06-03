@@ -17,7 +17,7 @@ def with_connection(local:)
       p e
       if count > 1
         if count > 20
-          STDERR.puts "Exiting"
+          STDERR.puts 'Exiting'
           exit(1)
         end
         sleep(0.5)
@@ -66,14 +66,14 @@ def start_server(foreground: false)
       IO.new(1).close
       IO.new(2).close
 
-      STDIN.reopen("/dev/null","r")
-      STDOUT.reopen("/dev/null","a")
-      STDERR.reopen("/dev/null","a")
+      STDIN.reopen('/dev/null','r')
+      STDOUT.reopen('/dev/null','a')
+      STDERR.reopen('/dev/null','a')
       $stdin = STDIN
       $stdout = STDOUT
       $stderr = STDERR
 
-      $0 = "re-server"
+      $0 = 're-server'
       start_service
     end
     Process.detach(pid)

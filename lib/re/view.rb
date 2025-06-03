@@ -29,7 +29,7 @@ class View
   CUTOFF_MARKER     = ANSI.sgr(33) {"\u25b8"}
   MAX_LENGTH_MARKER = ANSI.sgr(33) {"\u25bf"}
   EOL_MARKER        = nil #ANSI.sgr(30,49,:bold){"\u25c2"}
-  EOF_MARKER = "" #ANSI.sgr(40,32) {"<EOF>"}
+  EOF_MARKER = '' #ANSI.sgr(40,32) {"<EOF>"}
   GUTTER = [16,16,32]
 
   TABCHAR = "\u2504"
@@ -55,10 +55,10 @@ class View
 
   # FIXME: Maybe make this match on word boundaries?
   # FIXME: Leverage this for matching current token
-  OTHER_MATCHES = { "NOTE" => CHSTYLE[true]}
+  OTHER_MATCHES = { 'NOTE' => CHSTYLE[true]}
 
   # Pre-creating to avoid passing it through the ANSI parser every time.
-  PAD=AnsiTerm::String.new("\e[48m"+" "*200)
+  PAD=AnsiTerm::String.new("\e[48m"+' '*200)
   BGRESET = AnsiTerm::Attr.new(flags: 0, bgcol: 49, fgcol: 39)
 
   LINENO_LEN = 6
@@ -106,8 +106,8 @@ class View
   def lineno_format(curline=false)
     t = @editor&.mode&.theme&.other_styles rescue nil
 
-    fgcol = hexcol(get_style_option("line-numbers", :fg, default: "#4080e0"))
-    bgcol = hexcol(get_style_option("line-numbers", :bg, default: "#0c0c28"))
+    fgcol = hexcol(get_style_option('line-numbers', :fg, default: '#4080e0'))
+    bgcol = hexcol(get_style_option('line-numbers', :bg, default: '#0c0c28'))
 
     if curline
       fgcol = fgcol.map{|c| (c*1.5).clamp(0,255)}
@@ -162,16 +162,16 @@ class View
       print MAX_LENGTH_MARKER
     end
 
-    pos = "(%d,%d)" % [cursor.col, cursor.row + 1]
-    mode = (@editor.mode || "text").to_s
+    pos = '(%d,%d)' % [cursor.col, cursor.row + 1]
+    mode = (@editor.mode || 'text').to_s
     status = "#{@editor.ctrl && @editor.ctrl.lastcmd} #{pos} #{mode} "
     status = status[0..w-1] if status.length >= w
 
     #@out.move_cursor(w-status.length-1,0)
     @out.move_cursor(0,0)
-    start = " Re2"
+    start = ' Re2'
     pl = (w-status.length-start.length)
-    pad = pl > 0 ? " "*pl : ""
+    pad = pl > 0 ? ' '*pl : ''
     print "#{ANSI.sgr(48,2,40,40,80,37)}#{start}#{pad}#{status}#{ANSI.sgr(49,37,:bold)}"
 
     msg = @editor.message[0..w-5]
@@ -180,7 +180,7 @@ class View
       print ANSI.sgr(:normal)+ANSI.sgr(37,45)+msg
     end
 
-    @editor.message = ""
+    @editor.message = ''
     status.size
   end
 
@@ -301,16 +301,16 @@ class View
   # Must be called if the mode or buffer changes.
   def reset!
     @bg = hexcol(@opts[:background_color]) ||
-    hexcol(get_style_option("text", :bg)) ||
-    hexcol(get_style_option("background-pattern", :bg))
+    hexcol(get_style_option('text', :bg)) ||
+    hexcol(get_style_option('background-pattern', :bg))
 
     # Attributes affected by mode changes
     @gutter_attr = AnsiTerm::Attr.new(flags: 0, bgcol: [
       48,2,*(adjust_color(@bg, 0.8) || GUTTER)])
 
     @cursor_attr = AnsiTerm::Attr.new(
-      bgcol: [48,2,*hexcol(get_style_option("cursor", :bg, default: "#802080"))],
-      fgcol: [38,2,*hexcol(get_style_option("cursor", :fg, default: "#ffffff"))],
+      bgcol: [48,2,*hexcol(get_style_option('cursor', :bg, default: '#802080'))],
+      fgcol: [38,2,*hexcol(get_style_option('cursor', :fg, default: '#ffffff'))],
       flags: nil
     )
 
@@ -355,10 +355,10 @@ class View
       lf = lineno_format
       clf = lineno_format(true)
     elsif @opts[:left_margin]
-      lf = clf = AnsiTerm::String.new("      ")
+      lf = clf = AnsiTerm::String.new('      ')
       lf.set_attr(0..-2, @gutter_attr)
     else
-      lf = clf = AnsiTerm::String.new(" ")
+      lf = clf = AnsiTerm::String.new(' ')
       lf.set_attr(0..0, BGRESET)
     end
 
@@ -442,7 +442,7 @@ class View
     max = max_line_length ? max_line_length : text_width
     # Mark current line
     # FIXME: Might be better to simply set this directly on the TermBuffer
-    bg = hexcol(get_style_option("current-line", :bg)) #|| [0,0,96]
+    bg = hexcol(get_style_option('current-line', :bg)) #|| [0,0,96]
     return if !bg
     curlinecol = AnsiTerm::Attr.new(bgcol: [48,2, *bg])
     #curlinecol = AnsiTerm::Attr.new(bgcol: [48,2, 0xff,0xff,0xff])
@@ -474,7 +474,7 @@ class View
     l = @out.lines[cursor.row-@top+1]
     if !l || !l[x]
       @out.move_cursor(x,cursor.row-@top+1)
-      @out.print(" ")
+      @out.print(' ')
     end
     l = @out.lines[cursor.row-@top+1]
     l.set_attr(x..x, @cursor_attr)

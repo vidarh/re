@@ -24,7 +24,7 @@ def calc_indent(pos,prev,cur, soft: false)
   # This is hacky, but for now we assume that if the line starts with punctuation
   # and it looks like a Markdown list, we indent past it
   #
-  if soft && fp && fp[0].name == :Punctuation && fp[1][-1] == "*"
+  if soft && fp && fp[0].name == :Punctuation && fp[1][-1] == '*'
     pos += fp[1].length
     fp = prev.shift
     if fp[1] && fp[1][1]
@@ -35,7 +35,7 @@ def calc_indent(pos,prev,cur, soft: false)
 
   if is_block_start(fp)
     pos += INDENT
-  elsif lp && (lp[1] == "{" || lp[1] == "(" || lp[1] == "[" || lp[1] == "|" || lp[1] == "do")
+  elsif lp && (lp[1] == '{' || lp[1] == '(' || lp[1] == '[' || lp[1] == '|' || lp[1] == 'do')
     pos += INDENT
   end
   if cur && cur.match(/^[ \t]*(end|else|elsif|rescue|when|ensure|\}|\))([ \t]+.+)?/)

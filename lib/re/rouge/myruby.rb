@@ -12,17 +12,17 @@ class CommentLexer < Rouge::Lexer
   end
 
   def stream_tokens(text)
-    data = text.match(/([^#]*)#( ?)(.*)/) || ["",nil,"",text]
+    data = text.match(/([^#]*)#( ?)(.*)/) || ['',nil,'',text]
     tail = AnsiTerm::String.new(data[2]+
     String.new(@mf.format(
       @md.continue_lex(data[3]+"\n")).
-      gsub("\n",""))
+      gsub("\n",''))
     )
-    str  = data[1] ? "#{data[1]}\e[0;34m\u2503" : ""
+    str  = data[1] ? "#{data[1]}\e[0;34m\u2503" : ''
     if tail.length < 71
-      tail << " "*(71-tail.length)
+      tail << ' '*(71-tail.length)
     end
-    tail.merge_attr_below(0..tail.length, AnsiTerm::Attr.new(bgcol: "48;2;10;10;32"))
+    tail.merge_attr_below(0..tail.length, AnsiTerm::Attr.new(bgcol: '48;2;10;10;32'))
 
     yield @ttype,(str+tail.to_str)
   end
@@ -33,7 +33,7 @@ class CommentLexer < Rouge::Lexer
 end
 
 class MyRuby < Rouge::LayeredLexer
-  @@rb = Rouge::Lexer.find("ruby")
+  @@rb = Rouge::Lexer.find('ruby')
   @@sp = SpecialLexer.new
   @@sexp = SexpLexer.new
 
@@ -41,11 +41,11 @@ class MyRuby < Rouge::LayeredLexer
     super({
       lexer: @@rb.new,
       sublexers: {
-        "Text" => @@sp,
+        'Text' => @@sp,
 # Uh oh, something causes this to badly break things
 #        "Literal.String.Other" => @@sexp,
-        "Comment.Single" => CommentLexer.new(token_type: Rouge::Token::Tokens::Comment::Single),
-        "Comment.Multiline" => CommentLexer.new(token_type: Rouge::Token::Tokens::Comment::Multiline)
+        'Comment.Single' => CommentLexer.new(token_type: Rouge::Token::Tokens::Comment::Single),
+        'Comment.Multiline' => CommentLexer.new(token_type: Rouge::Token::Tokens::Comment::Multiline)
       }
     })
   end

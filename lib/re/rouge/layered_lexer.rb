@@ -24,8 +24,8 @@ module Rouge
   # ```
 
   class LayeredLexer < Lexer
-    option :lexer,     "Main lexer"
-    option :sublexers, "Hash of token qualnames to sub-lexers"
+    option :lexer,     'Main lexer'
+    option :sublexers, 'Hash of token qualnames to sub-lexers'
 
     def initialize(opts = {})
       @lexer =     opts.delete(:lexer)

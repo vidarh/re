@@ -1,7 +1,7 @@
 
-require "rouge"
-require "re/rouge/ruby"
-require "re/rouge/layered_lexer"
+require 'rouge'
+require 're/rouge/ruby'
+require 're/rouge/layered_lexer'
 
 
 class TestLexer < Rouge::RegexLexer
@@ -13,14 +13,14 @@ end
 
 RSpec.describe Rouge::LayeredLexer do
 
-  let (:ruby_lexer) { Rouge::Lexer.find("ruby").new }
-  let (:c_lexer)    { Rouge::Lexer.find("c").new }
+  let (:ruby_lexer) { Rouge::Lexer.find('ruby').new }
+  let (:c_lexer)    { Rouge::Lexer.find('c').new }
 
   let (:error_lexer) {
     Rouge::LayeredLexer.new(
       {
         lexer: ruby_lexer,
-        sublexers: {"Name.Class" => TestLexer.new }
+        sublexers: {'Name.Class' => TestLexer.new }
       }
     )
   }
@@ -35,21 +35,21 @@ RSpec.describe Rouge::LayeredLexer do
     END
   }
 
-  it "calls into the provided sub-lexer for a given token class and rewrites tokens" do
+  it 'calls into the provided sub-lexer for a given token class and rewrites tokens' do
     # First let's check it *doesn't* do this with the normal ruby lexer
     lex = ruby_lexer.lex(error_program).to_a
-    expect(lex[3]).to eq([Rouge::Token::Tokens::Name::Class, "NotAllowedButRestIs"])
+    expect(lex[3]).to eq([Rouge::Token::Tokens::Name::Class, 'NotAllowedButRestIs'])
 
     lex = error_lexer.lex(error_program).to_a
-    expect(lex[3]).to eq([Rouge::Token::Tokens::Error, "NotAllowed"])
-    expect(lex[4]).to eq([Rouge::Token::Tokens::Text, "ButRestIs "])
+    expect(lex[3]).to eq([Rouge::Token::Tokens::Error, 'NotAllowed'])
+    expect(lex[4]).to eq([Rouge::Token::Tokens::Text, 'ButRestIs '])
   end
 
   let(:crossline_lexer) { ruby_lexer
     Rouge::LayeredLexer.new(
       {
         lexer: ruby_lexer,
-        sublexers: {"Comment.Multiline" => TestLexer.new }
+        sublexers: {'Comment.Multiline' => TestLexer.new }
       }
     )
   }
@@ -74,7 +74,7 @@ string still here Class Name "
     program.split("\n").map(&:strip).join("\n")
   }
 
-  it "can be called line by line and the sub lexer will remain active across lines" do
+  it 'can be called line by line and the sub lexer will remain active across lines' do
 
     # Check the normal lexer
     expect(ruby_lexer.lex(crossline_program).to_a[2][0]).to eq(Rouge::Token::Tokens::Comment::Multiline)
@@ -100,7 +100,7 @@ string still here Class Name "
     expect(lex[2][0][0]).to eq(Rouge::Token::Tokens::Text)
     expect(lex[3][0][0]).to eq(Rouge::Token::Tokens::Text)
     expect(lex[3][1][0]).to eq(Rouge::Token::Tokens::Error)
-    expect(lex[3][1][1]).to eq("NotAllowed")
+    expect(lex[3][1][1]).to eq('NotAllowed')
     expect(lex[3][2][0]).to eq(Rouge::Token::Tokens::Text)
     expect(lex[4][0][0]).to eq(Rouge::Token::Tokens::Text)
   end
