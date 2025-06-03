@@ -7,23 +7,6 @@ require 'logger'
 # FIXME: Not the right place
 $log = Logger.new(File.expand_path('~/.re.log'))
 
-class IOToLog
-  def initialize(log)
-    @log = log
-  end
-
-  def write(*args)
-    @log.debug(caller[0..2].join(' / '))
-    @log.debug(args.join)
-  end
-
-  def flush = nil
-
-  def sync=(val)
-    nil
-  end
-end
-
 # Backwards compat
 Fixnum = Integer
 
@@ -179,8 +162,6 @@ if __FILE__ == $0
           $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?,
                                readonly: opts[:readonly])
         end
-
-        $> = IOToLog.new($log)
 
         if opts[:run]
           p $editor.send(opts[:run])
