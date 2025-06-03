@@ -1,8 +1,11 @@
-$uri="drbunix:#{ENV["HOME"]}/.re"
 
-class Buffer
-  include DRb::DRbUndumped
-  include DRb::DRbObservable
+require_relative 'service'
+
+module EditorCore
+  class Buffer
+    include DRb::DRbUndumped
+    include DRb::DRbObservable
+  end
 end
 
 class Editor
@@ -30,16 +33,16 @@ class Factory
       p e
     end
 
+    @buffers ||= []
     @buffers.each_with_index do |buf,id|
       buf.buffer_id = id
     end
-
-    @buffers ||= []
   end
 
   attr_reader :buffers
 
   def find_buffer(buf)
+    p [:find_buffer, buf]
     b   = @buffers[buf] if buf.is_a?(Fixnum)
     b ||= @buffers.compact.find {|b| b.name == buf }
     b
@@ -56,7 +59,8 @@ class Factory
     end
   end
 
-  def new_buffer(buf, str, created_at = 0)
+  def new_buffer(buf, str, created_at = DateTime.now)
+    p [:new_buffer, buf]
     b = find_buffer(buf)
 
     if !b

@@ -1,11 +1,13 @@
 #
 # # Render ranges of text lines
 # 
-# Goal:
+# Goals:
 # * Caching happens on server.
 # * Background thread does re-render for major changes.
 # * Client-side re-render either might not be needed at all(?)
 #   or only happens for individual lines.
+# * This should be independent of the editor, and extracted
+#   (with modes and themes) as its own gem
 #
 # Current:
 # * Caching happens in client
@@ -51,10 +53,9 @@ class ModeRender
   # Must update state cache until they matches what was
   # there previously.
   #
-  #
   def render_line(i, l)
-    return l if @mode.nil?
-    return cached(i) if !dirty?(i,l)
+    return l if @mode.nil? || l.nil?
+    return cached(i).dup if !dirty?(i,l)
 
     num = 0
     oi = i
@@ -82,7 +83,7 @@ class ModeRender
       end
       num += 1
     end
-    @rendercache[oi]
+    @rendercache[oi].dup
   end
 
   # FIXME: Want to run this server-side.
@@ -123,7 +124,7 @@ class ModeRender
     end
 
     r.map do |i|
-      l = @lines[i-r.first]
+      l = @lines[i-r.first] || nil
       [render_line(i, l), l, i]
     end
   end

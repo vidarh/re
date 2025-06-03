@@ -25,13 +25,15 @@ class BufferFactory
   end
 
   def set_buffer_contents(buffer, cursor,data, created_at = Time.now)
+    #p [:replacing, buffer, created_at]
     buffer.created_at = created_at
     buffer.replace_contents(cursor,lines_from_data(data))
   end
 
   def reload(buffer,cursor)
+    #p [:reloading, buffer]
     data = read_file_data(buffer.name)
-    set_buffer_contents(buffer,cursor,data, Time.now)
+    set_buffer_contents(buffer,cursor,data, DateTime.now)
   end
 
   def get_buffer(buf)

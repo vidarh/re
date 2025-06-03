@@ -3,16 +3,28 @@
 #
 #
 module Search
-
+  # FIXME: Refine. Point here is to handle
+  # an "in progress" regexp and fall back to the raw string.
+  # So e.g. a user typing 'foo\' and then 'foo\w' will
+  # end up searching for 'foo' then 'foo\w' instead of getting an
+  # error when typing the backslash.
+  def self.safe_regexp(str)
+    #Regexp.new(str,'i') rescue Regexp.new(str[0..-2],'i')
+    Regexp.new(Regexp.escape(str),'i')
+  rescue
+    str
+  end
+  
   def mark!; @mark = cursor; end
 
   def find_forward
     row = cursor.row
     col = cursor.col
     max = buffer.lines_count
+    r = Search.safe_regexp(@search)
     while (row < max) && (line = buffer.lines(row))
-      if i = line[col .. -1].index(@search)
-        move(row, col+i)
+      if i = line.index(r,col)
+        move(row, i)
         mark!
         return true
       end
@@ -39,13 +51,17 @@ module Search
     update = -> do
       render
       # FIXME: Render the expected cursor.
-      prompt("Find: #{@search}_")
+      prompt("\e[0mFind: #{@search}\e[42m \e[m")
     end
 
     update.call
     mark!
 
     @ctrl.raw do
+      # FIXME: is there a Ruby readline which
+      # 1) lets you trap keys
+      # 2) leaves rendering and keyboard input
+      #    entirely in your hands?
       loop do
         cmd,char = @ctrl.handle_input
         case cmd

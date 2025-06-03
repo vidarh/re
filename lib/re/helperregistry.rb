@@ -21,9 +21,33 @@
 # you to e.g. load different sets of configs in the future.
 #
 
+require 'shellwords'
 
 class HelperRegistry
+  # This is because Bundler is a piece of shit.
+  # It pollutes the environments in ways that makes
+  # spawning a Ruby program from Ruby wildly unreliable
+  # unless you clear out as much as possible
+  def start(cmd)
+    dir = 
+    spawn(
+      { "HOME" => ENV["HOME"],
+      "DISPLAY" => ENV["DISPLAY"],
+      "LANG" => ENV["LANG"],
+      "PATH" => ENV["PATH"]
+      },
+      cmd,
+      {
+        unsetenv_others: true,
+        chdir: File.expand_path("~")
+      }
+    )
+  end
 
+  def select_section(buffer)
+    `select-section #{buffer}`
+  end
+  
   def select_buffer
     `select-buffer 2>/dev/null`
   end
@@ -33,15 +57,21 @@ class HelperRegistry
   end
 
   def select_file
-    `filesel`
+    `filesel 2>/dev/null`
   end
 
   def select_syntax_theme
-    `select-rouge-theme`.strip
+    `select-rouge-theme 2>/dev/null`.strip
   end
 
-  def split_vertical(buffer_id)
-    system("split-vertical 2>>/tmp/relog.txt term e --buffer #{buffer_id}")
+  def open_new_window(buffer)
+    cmd = "term 2>>/tmp/relog.txt e #{bufferarg(buffer)}"
+    $log.debug("open_new_window: #{cmd}")
+    start(cmd)
+  end
+    
+  def split_vertical(buffer)
+    system("split-vertical 2>>/tmp/relog.txt term e #{bufferarg(buffer)}")
   end
 
   def split_vertical_term
@@ -56,4 +86,13 @@ class HelperRegistry
     system("split-horizontal term -e #{cmd}")
   end
 
+  private
+  def bufferarg(buffer)
+    if buffer.is_a?(Integer)
+      buffer = "--buffer #{buffer}"
+    else
+      buffer = buffer.shellescape
+    end
+    buffer
+  end
 end

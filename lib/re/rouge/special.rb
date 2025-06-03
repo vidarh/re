@@ -68,6 +68,10 @@
 require_relative 'formatter'
 require_relative 'layered_lexer'
 
+$rules = [
+  '\+[a-zA-Z]+' => 'Comment::Special',
+]
+
 class SpecialLexer < Rouge::RegexLexer
   def initialize
     @rl = Rouge::Lexer.find("ruby")

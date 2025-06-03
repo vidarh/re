@@ -1,6 +1,6 @@
 # HELP - Re v0.1
 
-To get back to your buffer: [Meta + F2]
+If opened within current buffer, [Meta + F2] to return
 
 ## Keyboard mappings
 

@@ -36,10 +36,10 @@ module ANSI
   end
 
   def self.clear_screen
-    print ANSI.cls
+    STDOUT.print ANSI.cls
   end
 
   def self.move_cursor(row, col)
-    print cup(row,col)
+    STDOUT.print cup(row,col)
   end
 end

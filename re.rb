@@ -1,33 +1,74 @@
 #!/usr/bin/env ruby
 
-# Bundler doesn't behave very well when
-# the current working dir is "unexpected"
+$: << File.expand_path("./stub")
+$: << File.expand_path(File.dirname(__FILE__))
+
+require 'logger'
+# FIXME: Not the right place
+$log = Logger.new(File.expand_path("~/.re.log"))
+
+class IOToLog
+  def initialize(log)
+    @log = log
+  end
+
+  def write(*args)
+    @log.debug(caller[0..2].join(" / "))
+    @log.debug(args.join)
+  end
+
+  def flush = nil
+  def sync=(val)
+    nil
+  end
+end
+
+# Backwards compat
+Fixnum = Integer
+
+class File
+  def self.exists?(f)
+    exist?(f)
+  end
+end
+
 def bundler
-    pwd = Dir.pwd
+  pwd = Dir.pwd
   begin
     Dir.chdir(File.dirname(__FILE__))
   rescue Errno::ENOENT
     #Dir.chdir(File.expand_path("~"))
   end
-   require 'bundler'
-   #require_relative 'vendor/bundle/bundler/setup'
-   Bundler.require(:default)
-   Dir.chdir(pwd)
+
+  require 'bundler/setup'
+#  Bundler.require(:default)
+
+## FIXME: This is horrifying
+#$: << "vendor/bundle//ruby/2.7.0/gems/rouge-4.0.0/lib/"
+  Dir.chdir(pwd)
 end
 
 bundler
+  
+#require 'pry'
+#binding.pry
 
 require 'io/console'
 require 'drb/drb'
 require 'drb/unix'
 require 'drb/observer'
 
+require 'fcntl'
+require 'rouge'
+require 'pry'
+
+require 'toml-rb'
+
+#end
+
 require_relative 'lib/re/monkeys'
 require_relative 'lib/re/ansi'
-#require_relative 'lib/re/buffer'
 require_relative 'lib/re/view'
-#require_relative 'lib/re/cursor'
-#require_relative 'lib/re/history'
 require_relative 'lib/re/modes'
 require_relative 'lib/re/indent'
 require_relative 'lib/re/editor'
@@ -35,20 +76,21 @@ require_relative 'lib/re/server'
 require_relative 'lib/re/macros'
 require_relative 'lib/re/themes/base16_modified'
 require_relative 'lib/re/rouge/lexer'
-require_relative 'lib/re/themes/loader'
-
-require 'fcntl'
+require "rouge/gtk_theme_loader"
 
 if __FILE__ == $0
-
+  require 'slop'
+  
   opts = Slop.parse do |o|
     o.bool    '-h', '--help', "This help"
     o.bool    '--list-buffers', 'List buffers'
     o.bool    '--list-themes', 'List registered themes'
     o.string  '--run', 'Run the following editor function and exit'
     o.integer '--buffer', 'Open buffer with the given number'
+    o.bool    '--get', 'Get the contents of the buffer and exit'
     o.integer '--kill-buffer', 'Kill buffer with the given number'
     o.bool    '--server', 'Start as a server. Usually started automatically'
+    o.bool    '--foreground', 'If starting as a server, remain in foreground'
     o.bool    '--treeserver', 'Start as new test server'
     o.bool    '--readonly', 'Start as client, but do not start the controller at all'
     o.separator ''
@@ -71,47 +113,11 @@ if __FILE__ == $0
   end
 
   if opts.server?
-
-    # Daemonize by double-fork and becoming sesson leader.
-    raise 'First fork failed' if (pid = fork) == -1
-    exit unless pid.nil?
-    Process.setsid
-    raise 'Second fork failed' if (pid = fork) == -1
-    exit unless pid.nil?
-
-    STDIN.reopen '/dev/null'
-    STDOUT.reopen '/dev/null', 'a'
-
-    $factory = f = Factory.new
-
-    begin
-      DRb.start_service($uri, f)
-    rescue Errno::EADDRINUSE
-      fname = "#{ENV["HOME"]}/.re"
-      begin
-        UNIXSocket.new(fname)
-        STDERR.puts "Another server is listening on #{fname}. Exiting"
-        exit 1
-      rescue Errno::ECONNREFUSED
-        File.unlink(fname)
-      end
-      retry
-    end
-
-    STDERR.reopen STDOUT
-
-    Thread.abort_on_exception = true
-    Thread.new do
-      loop do
-        sleep(60)
-        f.store_buffers
-      end
-    end
-
-    DRb.thread.join
+    start_server(foreground: opts.foreground?)
     exit(0)
   end
 
+  # FIXME: For callbacks. Really shouldn't be necessary.
   DRb.start_service if !opts.local?
 
   if opts.profile?
@@ -129,41 +135,62 @@ if __FILE__ == $0
   first = true
   loop do
     begin
-      $factory = f = opts.local? ? Factory.new : DRbObject.new_with_uri($uri)
+      with_connection(local: opts.local?) do |f|
 
-      if opts.list_buffers?
-        puts f.list_buffers
-        exit(0)
-      elsif opts.list_themes?
-        puts Rouge::Theme.registry.keys.sort.join("\n")
-        exit(0)
-      elsif opts[:kill_buffer]
-        f.kill_buffer(opts[:kill_buffer])
-        exit(0)
-      end
+        # FIXME: For now this is to force testing of the DrB connection
+        list = f.list_buffers
+        
+        if opts.list_buffers?
+          puts list
+          exit(0)
+        elsif opts.list_themes?
+          puts Rouge::Theme.registry.keys.sort_by{_1.downcase}.join("\n")
+          exit(0)
+        elsif opts[:kill_buffer]
+          f.kill_buffer(opts[:kill_buffer])
+          exit(0)
+        end
 
-      if opts[:buffer]
-        $editor = Editor.new(buffer: f.new_buffer(opts[:buffer],""), factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
-      else
-        $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
-      end
+        if opts[:buffer]
+          $buffer = f.new_buffer(opts[:buffer],"")
+        end
+        
+        if opts[:get]
+          if !$buffer
+            # FIXME: Add way to reference 'special' buffer names w/out expand_path
+            $fname = File.expand_path(opts.arguments[0])
+            $buffer = f.find_buffer($fname)
+          else
+            $fname = opts[:buffer]
+          end
+          if !$buffer
+            STDERR.puts "No such buffer: #{$fname}"
+            exit(1)
+          end
 
-      if opts[:run]
-        p $editor.send(opts[:run])
+          p $buffer.__drburi
+          puts $buffer.lines(0..-1).join("\n")
+          exit(0)
+        end
+      
+        if $buffer
+          $editor = Editor.new(buffer: $buffer, factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
+        else
+          $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
+        end
+        
+        $> = IOToLog.new($log)
+
+        if opts[:run]
+          p $editor.send(opts[:run])
+          break
+        end
+
+        
+        $editor.run
+        Termcontroller::Controller.quit
         break
       end
-
-      $editor.run
-      break
-    rescue DRb::DRbConnError => e
-      p e
-      if !first
-        sleep(0.1)
-        STDERR.puts "Failed to open connection to server. Trying to start"
-      end
-      first = false
-      cmd = ["ruby",__FILE__,"--server"].join(" ")
-      system(cmd)
     rescue SystemExit
       raise
     rescue Exception => e

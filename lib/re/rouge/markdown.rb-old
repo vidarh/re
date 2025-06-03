@@ -21,23 +21,6 @@ module Rouge
       #edot = /\\.|[^\\\n]/
       edot = /\\.|[^\\]/
 
-      state :em do
-        rule /[*]/, Generic::Emph, :pop!
-        rule /./, Generic::Emph
-      end
-
-      state :strong do
-        rule /[*][*]/, Generic::Strong, :pop!
-        rule edot, Generic::Strong
-      end
-      
-      state :strd do
-        rule /^#/, Error, :pop!
-        rule /"/, Literal::String::Double, :pop!
-        rule /[^"]+/, Literal::String::Double
-      end
-
-      #rule /[*]#{edot}*?[*]/, Generic::Emph, :em
       state :root do
         # YAML frontmatter
         rule(/\A(---\s*\n.*?\n?)^(---\s*$\n?)/m) { delegate YAML }
@@ -50,33 +33,15 @@ module Rouge
         rule /^#(?=[^#]).*?$/, Generic::Heading
         rule /^##*.*?$/, Generic::Subheading
 
-        rule /^([ \t]*)(```)([^\n]*)/ do |m|
-          token Text, m[1]
-          token Punctuation, m[2]
-          token Name::Label, m[3]
-          name = m[3].strip
-          sublexer = Lexer.find_fancy(name.empty? ? "guess" : name, m[5], @options)
-          sublexer ||= PlainText.new(@options.merge(:token => Str::Backtick))
-          sublexer.reset!
-          push do
-            rule /^([ \t]*)(#{m[2]})/ do |m|
-              pop!
-              token Text, m[1]
-              token Punctuation, m[2]
-            end
-            rule /^.*$/ do |m|
-              delegate sublexer, m[1]
-            end
-          end
-        end
-        
+        # FIXME: This breaks because it's multi-line
         rule /^([ \t]*)(```|~~~)([^\n]*\n)((.*?)(\2))?/m do |m|
           name = m[3].strip
           sublexer = Lexer.find_fancy(name.empty? ? "guess" : name, m[5], @options)
           sublexer ||= PlainText.new(@options.merge(:token => Str::Backtick))
           sublexer.reset!
 
-          token Text, m[1]
+          #token Error
+          #token Text,        m[1]
           token Punctuation, m[2]
           token Name::Label, m[3]
           if m[5]
@@ -101,10 +66,7 @@ module Rouge
 
         rule /\n\n((    |\t).*?\n|\n)+/, Str::Backtick
 
-        rule /"[^"]*"/, Literal::String::Double
-        rule /"[^"]*/, Literal::String::Double, :strd
         rule /(`+)(?:#{edot}|\n)+?\1/, Str::Backtick
-        rule /("+)(?:#{edot}|\n)+?\1/, Literal::String::Double
 
         # various uses of * are in order of precedence
 
@@ -140,12 +102,10 @@ module Rouge
           push :link
         end
 
-        rule /[*][*]/, Generic::Strong, :strong
-        #rule /[*][*]#{edot}*?[*][*]/, Generic::Strong, :strong
+        rule /[*][*]#{edot}*?[*][*]/, Generic::Strong
         rule /__#{edot}*?__/, Generic::Strong
 
-        #rule /[*]#{edot}*?[*]/, Generic::Emph, :em
-        rule /[*]/, Generic::Emph, :em
+        rule /[*]#{edot}*?[*]/, Generic::Emph
         rule /_#{edot}*?_/, Generic::Emph
 
         # Automatic links
@@ -153,7 +113,7 @@ module Rouge
         rule %r[<(https?|mailto|ftp)://#{edot}*?>], Name::Variable
 
 
-        rule /[^"\\`\[*\n&<]+/, Text
+        rule /[^\\`\[*\n&<]+/, Text
 
         # inline html
         rule(/&\S*;/) { delegate html }
@@ -193,10 +153,10 @@ module Rouge
       end
 
       state :title do
-        rule /"#{edot}*?"/, Name::Namespace
+        #rule /"#{edot}*?"/, Name::Namespace
         rule /'#{edot}*?'/, Name::Namespace
         rule /[(]#{edot}*?[)]/, Name::Namespace
-        rule /\s*(?=["'()])/, Text
+        #rule /\s*(?=["'()])/, Text
         rule(//) { pop! }
       end
 

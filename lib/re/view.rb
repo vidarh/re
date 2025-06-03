@@ -1,7 +1,7 @@
-# coding: utf-8
+# coing: utf-8
 require_relative 'viewmodel'
 require_relative 'moderender'
-require 'ansiterm/buffer'
+require 'ansiterm'
 
 #
 # # View #
@@ -22,10 +22,56 @@ class View
   attr_reader :editor, :opts, :xoff, :w, :h
   attr_accessor :top
 
+  # # Settings #
+  #
+  # FIXME: Extrat settings (and unify formats)
+  #
   CUTOFF_MARKER     = ANSI.sgr(33) {"\u25b8"}
   MAX_LENGTH_MARKER = ANSI.sgr(33) {"\u25bf"}
-  EOL_MARKER        = ANSI.sgr(30,49,:bold){"\u25c2"}
+  EOL_MARKER        = nil #ANSI.sgr(30,49,:bold){"\u25c2"}
+  EOF_MARKER = "" #ANSI.sgr(40,32) {"<EOF>"}
   GUTTER = [16,16,32]
+
+  TABCHAR = "\u2504"
+  TAB = AnsiTerm::String.new(ANSI.sgr(38,2,80,40,40)+TABCHAR*4).freeze
+
+  MATCH_ATTRS = {
+    true => AnsiTerm.attr(
+      fgcol: 32,
+      bgcol: 45,
+      flags: AnsiTerm::Attr::UNDERLINE
+    ),
+    false => AnsiTerm::Attr.new(
+      fgcol: 32,
+      bgcol: 44,
+      flags: nil
+    )
+  }.freeze
+
+  CHSTYLE = {
+    true  => AnsiTerm.attr(fgcol: 34, flags: AnsiTerm::Attr::BOLD | AnsiTerm::Attr::UNDERLINE),
+    false => AnsiTerm.attr(fgcol: 33, flags: AnsiTerm::Attr::UNDERLINE)
+  }
+
+  # FIXME: Maybe make this match on word boundaries?
+  # FIXME: Leverage this for matching current token
+  OTHER_MATCHES = { "NOTE" => CHSTYLE[true]}
+
+  # Pre-creating to avoid passing it through the ANSI parser every time.
+  PAD=AnsiTerm::String.new("\e[48m"+" "*200)
+  BGRESET = AnsiTerm::Attr.new(flags: 0, bgcol: 49, fgcol: 39)
+
+  LINENO_LEN = 6
+  WBUF = 2 # Extra space for marks etc.
+
+
+  TABS = [
+    TAB[0..3].freeze,
+    TAB[0..2].freeze,
+    TAB[0..1].freeze,
+    TAB[0..0].freeze
+  ].freeze
+
 
   def fg(r,g,b); ANSI.sgr(38,2,r,g,b); end
   def bg(r,g,b); ANSI.sgr(48,2,r,g,b); end
@@ -33,7 +79,12 @@ class View
   # FIXME: Make this validate
   def hexcol(c)
     return nil if !c
-    [c[1..2].to_i(16),c[3..4].to_i(16),c[5..6].to_i(16)]
+    return nil if c[0] != ?#
+    if c.match(/#rgba\((\d)+,(\d)+,(\d)+,.*\)/)
+      [$1.to_i,$2.to_i,$3.to_i]
+    else
+      [c[1..2].to_i(16),c[3..4].to_i(16),c[5..6].to_i(16)]
+    end
   end
 
   def get_style_option(conf, option, default: nil)
@@ -59,48 +110,13 @@ class View
     bgcol = hexcol(get_style_option("line-numbers", :bg, default: "#0c0c28"))
 
     if curline
-      fgcol = fgcol.map{|c| c*1.5}
-      bgcol = bgcol.map{|c| c*3}
+      fgcol = fgcol.map{|c| (c*1.5).clamp(0,255)}
+      bgcol = bgcol.map{|c| (c*3).clamp(0,255)}
     end
     bgdark = bgcol.map{|c| c/1.5}
 
     "#{fg(*fgcol)+bg(*bgcol)+ANSI.sgr(1)}%4d#{fg(*bgcol)+bg(*bgdark)}\u258B#{ANSI.sgr(0,49,39)} "
   end
-
-  LINENO_LEN = 6
-  WBUF = 2 # Extra space for marks etc.
-  TABCHAR = "\u2504"
-
-  TAB = AnsiTerm::String.new(" "*4).freeze
-
-  MATCH_ATTRS = {
-    true => AnsiTerm.attr(
-      fgcol: 32,
-      bgcol: 45,
-      flags: AnsiTerm::Attr::UNDERLINE
-    ),
-    false => AnsiTerm::Attr.new(
-      fgcol: 32,
-      bgcol: 44,
-      flags: nil
-    )
-  }.freeze
-
-  CHSTYLE = {
-    true  => AnsiTerm.attr(fgcol: 34, flags: AnsiTerm::Attr::BOLD | AnsiTerm::Attr::UNDERLINE),
-    false => AnsiTerm.attr(fgcol: 33, flags: AnsiTerm::Attr::UNDERLINE)
-  }
-
-  # FIXME: Maybe make this match on word boundaries?
-  # FIXME: Leverage this for matching current token
-  OTHER_MATCHES = { "NOTE" => CHSTYLE[true]}
-
-  TABS = [
-    TAB[0..3].freeze,
-    TAB[0..2].freeze,
-    TAB[0..1].freeze,
-    TAB[0..0].freeze
-  ].freeze
 
   def initialize(editor)
     @editor = editor
@@ -130,7 +146,7 @@ class View
   # FIXME: Should ask the TermBuffer about this.
   def winsize; IO.console.winsize end
 
-  def width;  @w > 0 ? @w : winsize[1]+@w; end
+  def width; @w > 0 ? @w : winsize[1]+@w; end
   def height; @h > 0 ? @h : winsize[0]+@h; end
   def text_xoff; (@opts[:show_lineno] || @opts[:left_margin]) ? LINENO_LEN : 1; end
   def text_width; width - WBUF - text_xoff; end
@@ -142,7 +158,7 @@ class View
 
     if max_line_length
       off = @opts[:show_lineno] || @opts[:left_margin] ? 4 : 0
-      @out.move_cursor(off+max_line_length+1,0)
+      @out.move_cursor(off+max_line_length+2,1)
       print MAX_LENGTH_MARKER
     end
 
@@ -151,8 +167,12 @@ class View
     status = "#{@editor.ctrl && @editor.ctrl.lastcmd} #{pos} #{mode} "
     status = status[0..w-1] if status.length >= w
 
-    @out.move_cursor(w-status.length-1,0)
-    print "#{ANSI.sgr(48,2,40,40,80,37)} #{status}#{ANSI.sgr(49,37,:bold)}"
+    #@out.move_cursor(w-status.length-1,0)
+    @out.move_cursor(0,0)
+    start = " Re2"
+    pl = (w-status.length-start.length)
+    pad = pl > 0 ? " "*pl : ""
+    print "#{ANSI.sgr(48,2,40,40,80,37)}#{start}#{pad}#{status}#{ANSI.sgr(49,37,:bold)}"
 
     msg = @editor.message[0..w-5]
     if msg.length > 0
@@ -178,12 +198,13 @@ class View
     end
   end
 
-  def move(row,col); @out.move_cursor(row+@y,col+@x); end
+  def move(row,col); @out.move_cursor(col+@x, row+@y); end
 
   def each_specific_match(str, match)
     start = 0
     sl = match.length
-    while i = str.index(match,start)
+    r = Search.safe_regexp(match)
+    while i = str.index(r,start)
       start = i + sl
       yield(i .. start-1, match)
     end
@@ -213,7 +234,7 @@ class View
   end
 
   def render_marks line, y
-    line = line.dup
+#    line = line.dup
     m = @editor.mark || @editor.cursor
 
     each_match(line) do |r, str|
@@ -243,13 +264,13 @@ class View
   # FIXME
   # Using index would probably be better/faster.
   #
-  #
+  # FIXME: Migrate to viewmodel
   def update_line(y,line=nil)
     if !line
       line = AnsiTerm::String.new(buffer.lines(y))
     end
     if !line.is_a?(AnsiTerm::String)
-      line = AnsiTerm::String.new(line)
+      line = AnsiTerm::String.new(line.to_s)
     end
 
     if line.index("\t").nil?
@@ -279,15 +300,23 @@ class View
 
   # Must be called if the mode or buffer changes.
   def reset!
+    @bg = hexcol(@opts[:background_color]) ||
+    hexcol(get_style_option("text", :bg)) ||
+    hexcol(get_style_option("background-pattern", :bg))
+
     # Attributes affected by mode changes
     @gutter_attr = AnsiTerm::Attr.new(flags: 0, bgcol: [
-      48,2,*(adjust_color(background_color, 0.8) || GUTTER)])
+      48,2,*(adjust_color(@bg, 0.8) || GUTTER)])
       
     @cursor_attr = AnsiTerm::Attr.new(
       bgcol: [48,2,*hexcol(get_style_option("cursor", :bg, default: "#802080"))],
       fgcol: [38,2,*hexcol(get_style_option("cursor", :fg, default: "#ffffff"))],
       flags: nil
     )
+
+    if @bg
+      @bgcol_attr = AnsiTerm::Attr.new(bgcol: [48,2, *@bg])
+    end
 
     @moderender.mode   = @editor.mode
     @moderender.buffer = @editor.buffer
@@ -296,12 +325,9 @@ class View
 
   # Pads the line with the background up to tw characters
   def pad(line, l, tw)
-    # FIXME: Probably more efficient to pre-create
-    # one. Wont this pass through the ANSI parser?
-    # FIXME: The + 1 obscures cutoff indicators.
-    c = tw - l + 1 #text_width #@out.w-line.length-6
+    c = tw - l + 1
     if c > 0
-      line << "\e[48m"+" "*c
+      line << PAD[0..c]
     end
   end
 
@@ -309,12 +335,10 @@ class View
     # FIXME: This is *merging*. Shound separate set/merge
     # since set can be much faster
     if m = max_line_length
-      line.set_attr(m+1..-1, @gutter_attr)
+      line.set_attr(m+2..-1, @gutter_attr)
     end
   end
   
-  BGRESET = AnsiTerm::Attr.new(flags: 0, bgcol: 49)
-
   def render
     return if !buffer
     update_top
@@ -325,15 +349,17 @@ class View
 
     adjust_xoff(tw)
 
-    max = [@top+h, buffer.lines_count].min
+    max = [@top+h-1, buffer.lines_count + 1].min
 
     if @opts[:show_lineno]
-      lf  = lineno_format
+      lf = lineno_format
       clf = lineno_format(true)
     elsif @opts[:left_margin]
-      lf = clf = "      "
+      lf = clf = AnsiTerm::String.new("      ")
+      lf.set_attr(0..-2, @gutter_attr)
     else
       lf = clf = AnsiTerm::String.new(" ")
+      lf.set_attr(0..0, BGRESET)
     end
 
     # Ensure the buffer size matches the terminal
@@ -346,46 +372,45 @@ class View
     @moderender.mode = opts[:highlight] ? @editor.mode : nil
     @moderender.render(@top...max).
     map do |line,orig,cnt|
-      line = update_line(cnt, line)
+      
+      move(cnt-@top+1,0)
+      if opts[:show_lineno]
+        if cnt == cursor.row
+          print(AnsiTerm::String.new(clf % (cnt+1)))
+        else
+          print(AnsiTerm::String.new(lf % (cnt.to_i+1)))
+        end
+      else
+        print(lf)
+      end
+
+      line = EOF_MARKER if line.nil?
+
+      # FIXME, this is not accurate for padded comment blocks
+      line << EOL_MARKER if EOL_MARKER
+
+      line = update_line(cnt, line) if line
       line = render_marks(line, cnt)
+      
+      # Truncate line
       line = line[@xoff..tw+@xoff] || AnsiTerm::String.new
       
-      if line.length < tw
+      if line.length <= tw
         l = line.length
-        # FIXME: Yikes, the padding is slow
-        # pad(line, l, tw)
+        pad(line, l, tw)
 
         # FIXME: This is ugly. Should be a more efficient way
         # of setting default next attribute.
-        max = max_line_length ? max_line_length + 1 : -1
+        max = max_line_length ? max_line_length + 1 : tw
         line.set_attr(l..max, BGRESET)
-        render_gutter(line)
       end
 
-      orig ||= ""
-      end_marker =  orig.length-@xoff > tw ? CUTOFF_MARKER : ""
-      lineno = lf
-      if opts[:show_lineno]
-        # FIXME: Maybe print this straight to the term buffer?
-        if cnt == cursor.row
-          lineno = clf % (cnt+1)
-        else
-          lineno = lf % (cnt.to_i+1)
-        end
-      elsif opts[:left_margin]
-        # FIXME: Cache
-        lineno = AnsiTerm::String.new(lf)
-        lineno.set_attr(0..-2, @gutter_attr)
-      else
-        # FIXME: Cache
-        lineno = AnsiTerm::String.new(lf)
-        lineno.set_attr(0..0, BGRESET)
+      if orig.to_s.length-@xoff > tw
+        line << CUTOFF_MARKER
       end
-      # FIXME: This would seem to generate ANSI and re-parse?
-      "#{lineno}#{line}#{end_marker}"
-    end.
-    zip((0..Float::INFINITY).lazy).each do |line,y|
-      move(0,y)
+      
+      render_gutter(line)
+
       @out.print(line)
     end
 
@@ -396,39 +421,42 @@ class View
     flush
   end
 
-  def background_color
-    hexcol(@opts[:background_color]) ||
-    hexcol(get_style_option("text", :bg)) ||
-    hexcol(get_style_option("background-pattern", :bg))
-  end
-
   def adjust_color(col, factor)
     return nil if col.nil?
-    col.map {|c| c = (c * factor).to_i; c > 255 ? 255 : c }
+    newcol = col.map {|c| c = (c * factor).to_i; c > 255 ? 255 : c }
   end
 
   def render_background
-    bg = background_color
-    if bg
-      col = AnsiTerm::Attr.new(bgcol: [48,2, *bg])
+    if @bgcol_attr
       @out.lines.each do |line|
-        line&.merge_attr_below(0..-1, col)
+        line&.merge_attr_below(0..-1, @bgcol_attr)
       end
     end
   end
 
   def render_curline_highlight
+    #@out.move_cursor(40,0)
+    #@out.print("== #{text_width} ==")
+    
     lfw = text_xoff-1
+    max = max_line_length ? max_line_length : text_width
     # Mark current line
     # FIXME: Might be better to simply set this directly on the TermBuffer
-    bg = hexcol(get_style_option("current-line", :bg))
-    #|| [0,0,96]
+    bg = hexcol(get_style_option("current-line", :bg)) #|| [0,0,96]
     return if !bg
     curlinecol = AnsiTerm::Attr.new(bgcol: [48,2, *bg])
+    #curlinecol = AnsiTerm::Attr.new(bgcol: [48,2, 0xff,0xff,0xff])
     # `#merge_attr_below` prevents "overwriting" other background colours
     # vs. `#set_attr`. Downside is that it doesn't "highlight" colours like
     # this. Might want to consider a setting to "blend" colours.
-    @out.lines[cursor.row-@top]&.merge_attr_below(lfw..-1, curlinecol)
+    l = @out.lines[cursor.row-@top+1]
+    if l
+      # FIXME: This is only needed here because I've disabled
+      # padding elsewhere. Revisit.
+      l.set_attr(lfw..lfw+max+1, curlinecol)
+    end
+    #@out.move_cursor(lfw+max,cursor.row-@top)
+    #@out.print("X")
   end
 
   # Draw fake cursor (we turn off the real cursor to prevent flickering,
@@ -443,12 +471,12 @@ class View
     # Make cursor visible even if currently no character
     # FIXME: Update AnsiTerm w/function to allow forcing a space
     # w/out this
-    l = @out.lines[cursor.row-@top]
+    l = @out.lines[cursor.row-@top+1]
     if !l || !l[x]
-      @out.move_cursor(x,cursor.row-@top)
+      @out.move_cursor(x,cursor.row-@top+1)
       @out.print(" ")
     end
-    l = @out.lines[cursor.row-@top]
+    l = @out.lines[cursor.row-@top+1]
     l.set_attr(x..x, @cursor_attr)
   end
 

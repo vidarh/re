@@ -64,9 +64,14 @@ class RougeMode
   end
 
   def should_insert_prefix(c,prev)
-    return nil if @lexer.tag != "ruby"
-    return nil if !prev || prev[c] != '#'
-    return '#'
+    case @lexer.tag
+    when 'ruby'
+      return '#' if prev[c] == '#'
+    when 'markdown'
+      return "* " if prev[c-1..c+1] == ' * '
+      return "* " if c==0 && prev[0..1] == '* '
+    end
+    return nil
   end
 end
 
@@ -90,15 +95,15 @@ class Modes
     return nil if !filename
     path = filename
     while path != "/" && path != "."
-      !File.exists?(path+"/.git")
-
-      if File.exists?(path+"/.gitattributes")
+      !File.exist?(path+"/.git")
+    
+      if File.exist?(path+"/.gitattributes")
         attrpath ||= path+"/.gitattributes"
       end
       path = File.dirname(path)
     end
 
-    if File.exists?(path+"/.git/info/attributes")
+    if File.exist?(path+"/.git/info/attributes")
       attrpath = path+"/.git/info/attributes"
       relpath  = path
     end
