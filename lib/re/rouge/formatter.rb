@@ -1,49 +1,46 @@
-
-  def is_heading(t)
-    t.qualname == 'Generic.Heading' ||
+def is_heading(t)
+  t.qualname == 'Generic.Heading' ||
     t.qualname == 'Generic.Subheading'
-  end
+end
 
+def heading_level str
+  str.match(/\A#+/)[0].length rescue 0
+end
 
-  def heading_level str
-    str.match(/\A#+/)[0].length rescue 0
-  end
-
-  def rewrite_token(tok,val)
-    if is_heading(tok)
-      if heading_level(val) == 1
-        val.match(/#\s*(.*)\s*/)
-        val = "\u256d\u258d#{$1.strip}\u2590"+"\u2500"*(71-val.length)+"\u256e"
-      else
-        val = val.gsub('#',"\u25B0")
-      end
-    elsif tok.qualname == 'Punctuation' && (val == '```' || val == '~~~')
-      val = "\u2550"*3
-    elsif tok.qualname == 'Punctuation' && val.strip == '*'
-      val.gsub!('*', "\u2022")
-#    elsif tok.qualname == "Punctuation" && val.strip == "***"
-#      val.gsub!("*", "⋆٭∗⁎☆★")
-    elsif tok.qualname == 'Literal.String.Double'
-      val[0]  = "\u201C" if val[0] == '"'
-      val[-1] = "\u201D" if val[-1] == '"'
+def rewrite_token(tok, val)
+  if is_heading(tok)
+    if heading_level(val) == 1
+      val.match(/#\s*(.*)\s*/)
+      val = "\u256d\u258d#{$1.strip}\u2590" + "\u2500" * (71 - val.length) + "\u256e"
+    else
+      val = val.gsub('#', "\u25B0")
     end
-    val
+  elsif tok.qualname == 'Punctuation' && (val == '```' || val == '~~~')
+    val = "\u2550" * 3
+  elsif tok.qualname == 'Punctuation' && val.strip == '*'
+    val.gsub!('*', "\u2022")
+  #    elsif tok.qualname == "Punctuation" && val.strip == "***"
+  #      val.gsub!("*", "⋆٭∗⁎☆★")
+  elsif tok.qualname == 'Literal.String.Double'
+    val[0]  = "\u201C" if val[0] == '"'
+    val[-1] = "\u201D" if val[-1] == '"'
   end
+  val
+end
 
 class ReFormatter < Rouge::Formatters::Terminal256
-
   def stream(tokens, &b)
     tokens.each do |tok, val|
-      escape = escape_sequence(tok,val)
+      escape = escape_sequence(tok, val)
       yield escape.style_string
-      val = rewrite_token(tok,val)
+      val = rewrite_token(tok, val)
       yield val.gsub("\n", "#{escape.reset_string}\n#{escape.style_string}")
       yield escape.reset_string
     end
   end
 
   def self.style(h)
-    Rouge::Theme::Style.new(nil,h)
+    Rouge::Theme::Style.new(nil, h)
   end
 
   HEADER_OVERRIDES = {
@@ -79,13 +76,11 @@ class ReFormatter < Rouge::Formatters::Terminal256
   SPECIAL_OVERRIDE = style(fg: '#ee00cd')
   CODE_OVERRIDE    = style(fg: '#ee00cd')
 
-
-
   # @FIXME:
   # Push this up the chain... Really should propose extension to allow
   # further subdivision of tokens.
   #
-  def escape_sequence(token,val)
+  def escape_sequence(token, val)
     style = get_style(token)
     name = token.qualname
 
@@ -119,6 +114,6 @@ class ReFormatter < Rouge::Formatters::Terminal256
 
     @escape_sequences ||= {}
     @escape_sequences[name] ||=
-    EscapeSequence.new(style)
+      EscapeSequence.new(style)
   end
 end

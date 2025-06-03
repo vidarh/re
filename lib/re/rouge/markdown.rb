@@ -18,7 +18,7 @@ module Rouge
 
       start { html.reset! }
 
-      #edot = /\\.|[^\\\n]/
+      # edot = /\\.|[^\\\n]/
       edot = /\\.|[^\\]/
 
       state :em do
@@ -37,7 +37,7 @@ module Rouge
         rule /[^"]+/, Literal::String::Double
       end
 
-      #rule /[*]#{edot}*?[*]/, Generic::Emph, :em
+      # rule /[*]#{edot}*?[*]/, Generic::Emph, :em
       state :root do
         # YAML frontmatter
         rule(/\A(---\s*\n.*?\n?)^(---\s*$\n?)/m) { delegate YAML }
@@ -141,17 +141,16 @@ module Rouge
         end
 
         rule /[*][*]/, Generic::Strong, :strong
-        #rule /[*][*]#{edot}*?[*][*]/, Generic::Strong, :strong
+        # rule /[*][*]#{edot}*?[*][*]/, Generic::Strong, :strong
         rule /__#{edot}*?__/, Generic::Strong
 
-        #rule /[*]#{edot}*?[*]/, Generic::Emph, :em
+        # rule /[*]#{edot}*?[*]/, Generic::Emph, :em
         rule /[*]/, Generic::Emph, :em
         rule /_#{edot}*?_/, Generic::Emph
 
         # Automatic links
         rule /<.*?@.+[.].+>/, Name::Variable
         rule %r[<(https?|mailto|ftp)://#{edot}*?>], Name::Variable
-
 
         rule /[^"\\`\[*\n&<]+/, Text
 

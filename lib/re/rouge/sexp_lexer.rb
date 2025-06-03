@@ -18,17 +18,18 @@ class SexpLexer < Rouge::RegexLexer
     return true if text =~ /%s\(/
   end
 
-  #start do
+  # start do
   #  push :sexpmain
-  #end
+  # end
 
   state :root do
-    rule /\%s/, Operator, :sexpmain #, :sexpmain
+    rule /\%s/, Operator, :sexpmain # , :sexpmain
   end
 
   state :sexpbuiltin do
     rule /(malloc|calloc|printf|__ralloc|__array)\b/, Name::Builtin
-    rule /(if|return|assign|while|index|bindex|defun|defm|do|let|callm|call|lambda|sexp|required|rest|class|module)\b/, Keyword
+    rule /(if|return|assign|while|index|bindex|defun|defm|do|let|callm|call|lambda|sexp|required|rest|class|module)\b/,
+         Keyword
     rule /(eq|lt|le|gt|ge|ne|add|sub|mul|mod|div)\b/, Operator
     rule /[ \t]+/, Text
   end
@@ -46,7 +47,6 @@ class SexpLexer < Rouge::RegexLexer
     rule /(-?[0-9]+)/, Num::Integer
     mixin :strings
   end
-
 
   # From the Ruby lexer:
   state :strings do

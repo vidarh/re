@@ -3,6 +3,7 @@ unless Comparable.instance_methods.include?(:clamp)
     def clamp(min, max)
       return min if self <= min
       return max if self >= max
+
       self
     end
   end

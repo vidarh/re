@@ -1,8 +1,6 @@
-
 require 'rouge'
 require 're/rouge/ruby'
 require 're/rouge/layered_lexer'
-
 
 class TestLexer < Rouge::RegexLexer
   state :root do
@@ -12,7 +10,6 @@ class TestLexer < Rouge::RegexLexer
 end
 
 RSpec.describe Rouge::LayeredLexer do
-
   let (:ruby_lexer) { Rouge::Lexer.find('ruby').new }
   let (:c_lexer)    { Rouge::Lexer.find('c').new }
 
@@ -20,7 +17,7 @@ RSpec.describe Rouge::LayeredLexer do
     Rouge::LayeredLexer.new(
       {
         lexer: ruby_lexer,
-        sublexers: {'Name.Class' => TestLexer.new }
+        sublexers: { 'Name.Class' => TestLexer.new }
       }
     )
   }
@@ -45,11 +42,12 @@ RSpec.describe Rouge::LayeredLexer do
     expect(lex[4]).to eq([Rouge::Token::Tokens::Text, 'ButRestIs '])
   end
 
-  let(:crossline_lexer) { ruby_lexer
+  let(:crossline_lexer) {
+    ruby_lexer
     Rouge::LayeredLexer.new(
       {
         lexer: ruby_lexer,
-        sublexers: {'Comment.Multiline' => TestLexer.new }
+        sublexers: { 'Comment.Multiline' => TestLexer.new }
       }
     )
   }
@@ -58,7 +56,7 @@ RSpec.describe Rouge::LayeredLexer do
 This is a multline comment
 (A) (B) (C)
 =end
-"This is a string start
+  "This is a string start
 
 string still here Class Name "
 
@@ -75,7 +73,6 @@ string still here Class Name "
   }
 
   it 'can be called line by line and the sub lexer will remain active across lines' do
-
     # Check the normal lexer
     expect(ruby_lexer.lex(crossline_program).to_a[2][0]).to eq(Rouge::Token::Tokens::Comment::Multiline)
 

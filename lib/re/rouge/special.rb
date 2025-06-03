@@ -81,7 +81,7 @@ class SpecialLexer < Rouge::RegexLexer
   state :string1 do
     rule /[^\"]/, Literal::String
     rule /^\"/, Literal::String::Double # Don't pop if first character in line
-    rule /\"/, Literal::String::Double, :pop! #punctuation for string
+    rule /\"/, Literal::String::Double, :pop! # punctuation for string
   end
 
   state :root do
@@ -95,7 +95,7 @@ class SpecialLexer < Rouge::RegexLexer
 
     rule /^[^"]*\"$/, Literal::String
     rule /["]$/, Literal::String::Double # Don't start a string at the end of a line
-    #rule /["]/, Literal::String::Double, :string1 #punctuation for string
+    # rule /["]/, Literal::String::Double, :string1 #punctuation for string
 
     rule /\s+\n/, Error
 
@@ -115,10 +115,10 @@ class SpecialLexer < Rouge::RegexLexer
 
   #  def serialize
   #  {rl: @rl.serialize, sh: @sh.serialize}
-  #end
+  # end
 
-  #def deserialize(states)
+  # def deserialize(states)
   #  @rl.deserialize(states[:rl])
   #  @sh.deserialize(states[:sh])
-  #end
+  # end
 end

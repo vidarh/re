@@ -10,7 +10,6 @@ require 'uri'
 # have dependencies on Re.
 #
 def detect_file_or_url(line, col)
-
   # *First* we try to rely on URI's very extensive
   # regex:
   start = line.rindex(URI.regexp(['https', 'http', 'mailto', 'ftp']), col)
@@ -23,6 +22,7 @@ def detect_file_or_url(line, col)
   if line[start] == '['
     start = line.index('](')
     return if !start
+
     start += 1
   end
 
@@ -33,15 +33,16 @@ def detect_file_or_url(line, col)
   stop = line.index(/[>)' \t]/, start)
   stop = line.length if !stop
 
-  stop-=1
+  stop -= 1
   fname = line[start..stop].split(':')
   if fname.length > 1
     if fname != 'file'
       return fname.join(':'), :url
     end
+
     fname.shift
   end
   return nil if !fname || !fname.first
+
   return fname.first, :file
 end
-

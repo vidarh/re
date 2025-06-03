@@ -2,7 +2,7 @@
 # FIXME: Giant, Ruby-specfic hack.
 #
 
-INDENT=2
+INDENT = 2
 
 $ilex ||= $editor&.mode&.lexer || Rouge::Lexers::Ruby.new
 $block_start = Set[*%w{if else elsif while class module def rescue begin do when case ensure}]
@@ -10,10 +10,11 @@ $block_start = Set[*%w{if else elsif while class module def rescue begin do when
 def is_block_start(fp)
   return false if !fp
   return false if !fp[0].name == :Keyword
+
   return $block_start.member?(fp[1])
 end
 
-def calc_indent(pos,prev,cur, soft: false)
+def calc_indent(pos, prev, cur, soft: false)
   $ilex = $editor&.mode&.lexer || Rouge::Lexers::Ruby.new
   prev = $ilex.lex(prev).to_a
   while fp = prev.shift

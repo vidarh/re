@@ -9,8 +9,8 @@ module Search
   # end up searching for 'foo' then 'foo\w' instead of getting an
   # error when typing the backslash.
   def self.safe_regexp(str)
-    #Regexp.new(str,'i') rescue Regexp.new(str[0..-2],'i')
-    Regexp.new(Regexp.escape(str),'i')
+    # Regexp.new(str,'i') rescue Regexp.new(str[0..-2],'i')
+    Regexp.new(Regexp.escape(str), 'i')
   rescue
     str
   end
@@ -23,7 +23,7 @@ module Search
     max = buffer.lines_count
     r = Search.safe_regexp(@search)
     while (row < max) && (line = buffer.lines(row))
-      if i = line.index(r,col)
+      if i = line.index(r, col)
         move(row, i)
         mark!
         return true
@@ -63,7 +63,7 @@ module Search
       # 2) leaves rendering and keyboard input
       #    entirely in your hands?
       loop do
-        cmd,char = @ctrl.handle_input
+        cmd, char = @ctrl.handle_input
         case cmd
         when :ctrl_c, :esc
           @search = ''
@@ -87,12 +87,11 @@ module Search
             @search += char
             find_forward
           end
-        #else
-        #  @message = [cmd, *char].inspect
+          # else
+          #  @message = [cmd, *char].inspect
         end
         update.call
       end
     end
   end
-
 end

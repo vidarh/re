@@ -25,7 +25,7 @@
 class ModeRender
   attr_accessor :mode, :buffer
 
-  def initialize debug=nil
+  def initialize debug = nil
     @debug = debug
     reset!
   end
@@ -36,11 +36,11 @@ class ModeRender
     @statecache ||= Hash.new { {} }
   end
 
-  def mode_render(i,l)
+  def mode_render(i, l)
     @rendercache[i] = @mode.call(l) rescue l
   end
 
-  def dirty?(i,l)
+  def dirty?(i, l)
     @viewcache[i] != l
   end
 
@@ -55,17 +55,17 @@ class ModeRender
   #
   def render_line(i, l)
     return l if @mode.nil? || l.nil?
-    return cached(i).dup if !dirty?(i,l)
+    return cached(i).dup if !dirty?(i, l)
 
     num = 0
     oi = i
     while l && num < 10
       # FIXME: This is not safe alongside render_all
-      if i > 0 && @statecache[i-1]
-        @mode.deserialize(@statecache[i-1])
+      if i > 0 && @statecache[i - 1]
+        @mode.deserialize(@statecache[i - 1])
       end
 
-      mode_render(i,l)
+      mode_render(i, l)
       @viewcache[i] = l
 
       si = @statecache[i]
@@ -74,13 +74,14 @@ class ModeRender
         break
       else
         @statecache[i] = si
-        i+=1
+        i += 1
         # FIXME: This is *very* slow; should operate
         # on the range currently being rendered,
         # and only call @buffer.lines() if outside that
         # range.
-        l = num.to_i #@lines[i-@r.first] || @buffer.lines(i)
+        l = num.to_i # @lines[i-@r.first] || @buffer.lines(i)
       end
+
       num += 1
     end
     @rendercache[oi].dup
@@ -91,15 +92,15 @@ class ModeRender
   # If maxy is set, trigger a refresh once
   # when the rendering has gone past maxy.
   #
-  def render_all(maxy=nil)
+  def render_all(maxy = nil)
     return if !@mode
 
     refresh = true
     Thread.new do
-      buffer.lines(0..-1).each_with_index do |l,i|
+      buffer.lines(0..-1).each_with_index do |l, i|
         @viewcache[i] = l
-        mode_render(i,l)
-        @statecache[i]  = @mode&.serialize
+        mode_render(i, l)
+        @statecache[i] = @mode&.serialize
 
         # Prevent the main thread from freezing
         # slowing to a crawl
@@ -124,7 +125,7 @@ class ModeRender
     end
 
     r.map do |i|
-      l = @lines[i-r.first] || nil
+      l = @lines[i - r.first] || nil
       [render_line(i, l), l, i]
     end
   end

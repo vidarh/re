@@ -38,12 +38,12 @@ module Rouge
       @lexer.tag
     end
 
-    def register_sublexer(qualname,b)
+    def register_sublexer(qualname, b)
       @sublexers[qualname] = b
     end
 
     def deserialize(state)
-      state.each do |k,v|
+      state.each do |k, v|
         if k == :_cur_lexer
           @cur_lexer = v
         elsif k == :_lexer
@@ -68,7 +68,7 @@ module Rouge
         m[:_cur_lexer] = @cur_lexer
       end
       m[:_lexer] = @lexer.serialize
-      @sublexers.each do |k,v|
+      @sublexers.each do |k, v|
         s = v.serialize
         if s && !s.empty?
           m[k] = s
@@ -79,18 +79,18 @@ module Rouge
 
     # FIXME: This is broken, in that it it resumes lexing
     # from the outermost lexer
-    def stream_tokens(str,&b)
-      (@sublexers[@cur_lexer] || @lexer).continue_lex(str) do |tok,val|
-#        p tok.qualname
+    def stream_tokens(str, &b)
+      (@sublexers[@cur_lexer] || @lexer).continue_lex(str) do |tok, val|
+        #        p tok.qualname
         if sl = @sublexers[@cur_lexer || tok.qualname]
           if sl.respond_to?(:lex)
             if @cur_lexer.nil?
-              sl.lex(val) do |t,v|
-                b.call(t,v)
+              sl.lex(val) do |t, v|
+                b.call(t, v)
               end
             else
-              sl.continue_lex(val) do |t,v|
-                b.call(t,v)
+              sl.continue_lex(val) do |t, v|
+                b.call(t, v)
               end
             end
 
@@ -100,10 +100,10 @@ module Rouge
               @cur_lexer = nil
             end
           else
-            b.call(*sl.call(tok,val))
+            b.call(*sl.call(tok, val))
           end
         else
-          b.call(tok,val)
+          b.call(tok, val)
         end
         nil
       end

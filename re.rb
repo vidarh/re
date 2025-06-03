@@ -18,6 +18,7 @@ class IOToLog
   end
 
   def flush = nil
+
   def sync=(val)
     nil
   end
@@ -37,21 +38,21 @@ def bundler
   begin
     Dir.chdir(File.dirname(__FILE__))
   rescue Errno::ENOENT
-    #Dir.chdir(File.expand_path("~"))
+    # Dir.chdir(File.expand_path("~"))
   end
 
   require 'bundler/setup'
-#  Bundler.require(:default)
+  #  Bundler.require(:default)
 
-## FIXME: This is horrifying
-#$: << "vendor/bundle//ruby/2.7.0/gems/rouge-4.0.0/lib/"
+  ## FIXME: This is horrifying
+  # $: << "vendor/bundle//ruby/2.7.0/gems/rouge-4.0.0/lib/"
   Dir.chdir(pwd)
 end
 
 bundler
 
-#require 'pry'
-#binding.pry
+# require 'pry'
+# binding.pry
 
 require 'io/console'
 require 'drb/drb'
@@ -64,7 +65,7 @@ require 'pry'
 
 require 'toml-rb'
 
-#end
+# end
 
 require_relative 'lib/re/monkeys'
 require_relative 'lib/re/ansi'
@@ -96,9 +97,9 @@ if __FILE__ == $0
     o.separator ''
     o.separator 'debug options:'
     o.bool    '--args', 'Output the parsed args'
-    o.bool    '--local',  'Run without server'
+    o.bool    '--local', 'Run without server'
     o.bool    '--profile', 'Enable Rubyprof profiling dumped to ~/.re-profile.html on exit'
-    o.bool    '--intercept',  'Log operations to the server to ~/.re-oplog-[client pid].txt'
+    o.bool    '--intercept', 'Log operations to the server to ~/.re-oplog-[client pid].txt'
   end
 
   if opts.help?
@@ -124,7 +125,7 @@ if __FILE__ == $0
     at_exit do
       profile = RubyProf.stop
       STDERR.puts 'Writing profile'
-      File.open(File.expand_path('~/.re-profile.html'),'w') do |f|
+      File.open(File.expand_path('~/.re-profile.html'), 'w') do |f|
         printer = RubyProf::CallStackPrinter.new(profile)
         printer.print(f, {})
       end
@@ -136,7 +137,6 @@ if __FILE__ == $0
   loop do
     begin
       with_connection(local: opts.local?) do |f|
-
         # FIXME: For now this is to force testing of the DrB connection
         list = f.list_buffers
 
@@ -144,7 +144,7 @@ if __FILE__ == $0
           puts list
           exit(0)
         elsif opts.list_themes?
-          puts Rouge::Theme.registry.keys.sort_by{_1.downcase}.join("\n")
+          puts Rouge::Theme.registry.keys.sort_by { _1.downcase }.join("\n")
           exit(0)
         elsif opts[:kill_buffer]
           f.kill_buffer(opts[:kill_buffer])
@@ -152,7 +152,7 @@ if __FILE__ == $0
         end
 
         if opts[:buffer]
-          $buffer = f.new_buffer(opts[:buffer],'')
+          $buffer = f.new_buffer(opts[:buffer], '')
         end
 
         if opts[:get]
@@ -176,7 +176,8 @@ if __FILE__ == $0
         if $buffer
           $editor = Editor.new(buffer: $buffer, factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
         else
-          $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?, readonly: opts[:readonly])
+          $editor = Editor.new(filename: opts.arguments[0], factory: f, intercept: opts.intercept?,
+                               readonly: opts[:readonly])
         end
 
         $> = IOToLog.new($log)
@@ -185,7 +186,6 @@ if __FILE__ == $0
           p $editor.send(opts[:run])
           break
         end
-
 
         $editor.run
         Termcontroller::Controller.quit

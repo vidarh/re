@@ -27,48 +27,44 @@ module Rouge
           [a-z_]\w*[!?]? # the symbol
         )xi, Str::Symbol
 
-
         # special symbols
         rule %r(:(?:\*\*|[-+]@|[/\%&\|^`~]|\[\]=?|<<|>>|<=?>|<=?|===?)),
-          Str::Symbol
-
+             Str::Symbol
 
         rule /:'(\\\\|\\'|[^'])*'/, Str::Symbol
         rule /:"/, Str::Symbol, :simple_sym
       end
 
-
-
       state :sexpbuiltin do
         rule /(malloc|calloc|printf|__ralloc|__array)\b/, Name::Builtin
-        rule /(if|return|assign|while|index|bindex|defun|defm|do|let|callm|call|lambda|sexp|required|rest|class|module)\b/, Keyword
+        rule /(if|return|assign|while|index|bindex|defun|defm|do|let|callm|call|lambda|sexp|required|rest|class|module)\b/,
+             Keyword
         rule /(eq|lt|le|gt|ge|ne|add|sub|mul|mod|div)\b/, Operator
         rule /[ \t]+/, Text
       end
 
-  state :sexpmain do
-    rule /#.*$/, Comment::Single
-    rule /\(/, Punctuation, :sexpmain
-    rule /\)/, Punctuation, :pop!
+      state :sexpmain do
+        rule /#.*$/, Comment::Single
+        rule /\(/, Punctuation, :sexpmain
+        rule /\)/, Punctuation, :pop!
 
-    mixin :sexpbuiltin
-    rule /([A-Z][_a-zA-Z]*[!?=]?)/, Name::Class
-    rule /<<|\[\]=|\[\]|===?|!=|\+|-|<=?|>=?|\*|\/|\%|!/, Operator
-    rule /([\._a-z][_a-zA-Z0-9]*[!?=]?)/, Name::Variable
-    rule /(@@?[_a-zA-Z]+)/, Name::Variable::Instance
-    rule /(-?[0-9]+)/, Num::Integer
-    mixin :strings
-    rule /./, Error
-  end
+        mixin :sexpbuiltin
+        rule /([A-Z][_a-zA-Z]*[!?=]?)/, Name::Class
+        rule /<<|\[\]=|\[\]|===?|!=|\+|-|<=?|>=?|\*|\/|\%|!/, Operator
+        rule /([\._a-z][_a-zA-Z0-9]*[!?=]?)/, Name::Variable
+        rule /(@@?[_a-zA-Z]+)/, Name::Variable::Instance
+        rule /(-?[0-9]+)/, Num::Integer
+        mixin :strings
+        rule /./, Error
+      end
 
+      # From the Ruby lexer:
+      # state :strings do
+      #  rule /'(\\\\|\\'|[^'])*'/, Str::Single
+      #  rule /"(\\\\|\\"|[^"])*"/, Str::Double
+      # end
 
-  # From the Ruby lexer:
-  #state :strings do
-  #  rule /'(\\\\|\\'|[^'])*'/, Str::Single
-  #  rule /"(\\\\|\\"|[^"])*"/, Str::Double
-  #end
-
-  state :sigil_strings do
+      state :sigil_strings do
         # %-sigiled strings
         # %(abc), %[abc], %<abc>, %.abc., %r.abc., etc
         delimiter_map = { '{' => '}', '[' => ']', '(' => ')', '<' => '>' }
@@ -79,7 +75,7 @@ module Rouge
         rule /\%s\(/, Punctuation, :sexpmain
         #  token Keyword
         #  push :sexpmain
-        #end
+        # end
 
         rule /%([rqswQWxiI])?([^\w\s])/ do |m|
           open = Regexp.escape(m[2])
@@ -191,7 +187,7 @@ module Rouge
 
       state :multiline do
         rule /^\=end/, Comment::Multiline, :pop!
-        #rule /./, Error
+        # rule /./, Error
         rule /./, Comment::Multiline
       end
 
@@ -205,7 +201,7 @@ module Rouge
         rule /__END__/, Comment::Preproc, :end_part
 
         rule /\%s\(/, Punctuation, :sexpmain
-        #rule /./, Error
+        # rule /./, Error
 
         rule /0_?[0-7]+(?:_[0-7]+)*/, Num::Oct
         rule /0x[0-9A-Fa-f]+(?:_[0-9A-Fa-f]+)*/, Num::Hex
@@ -245,9 +241,9 @@ module Rouge
         end
 
         rule /(?:#{builtins_q.join('|')})[?]/, Name::Builtin, :expr_start
-        rule /(?:#{builtins_b.join('|')})!/,  Name::Builtin, :expr_start
+        rule /(?:#{builtins_b.join('|')})!/, Name::Builtin, :expr_start
         rule /(?<!\.)(?:#{builtins_g.join('|')})\b/,
-          Name::Builtin, :method_call
+             Name::Builtin, :method_call
 
         mixin :has_heredocs
 
@@ -264,7 +260,7 @@ module Rouge
         rule /[a-zA-Z_]\w*[?!]/, Name, :expr_start
         rule /[a-zA-Z_]\w*/, Name, :method_call
         rule /\*\*|<<?|>>?|>=|<=|<=>|=~|={3}|!~|&&?|\|\||\./,
-          Operator, :expr_start
+             Operator, :expr_start
         rule /[-+\/*%=<>&!^|~]=?/, Operator, :expr_start
         rule(/[?]/) { token Punctuation; push :ternary; push :expr_start }
         rule %r<[\[({,:\\;/]>, Punctuation, :expr_start
@@ -396,7 +392,7 @@ module Rouge
       state :string_intp_escaped do
         mixin :string_intp
         rule /\\([\\abefnrstv#"']|x[a-fA-F0-9]{1,2}|[0-7]{1,3})/,
-          Str::Escape
+             Str::Escape
         rule /\\./, Str::Escape
       end
 
@@ -433,10 +429,9 @@ module Rouge
       end
 
       state :expr_start do
-        #rule /\%s/, Error, :sexpmain
+        # rule /\%s/, Error, :sexpmain
 
         mixin :inline_whitespace
-
 
         rule %r(/) do
           token Str::Regex

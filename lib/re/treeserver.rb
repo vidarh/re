@@ -1,4 +1,4 @@
-$uri="drbunix:#{ENV["HOME"]}/.re"
+$uri = "drbunix:#{ENV["HOME"]}/.re"
 
 class Buffer
   include DRb::DRbUndumped
@@ -22,7 +22,7 @@ class Factory
     puts "Loading buffers from #{@bufstore}"
 
     begin
-      File.open(@bufstore,'r') do |f|
+      File.open(@bufstore, 'r') do |f|
         @buffers = JSON.load(f)
       end
     rescue Exception => e
@@ -35,10 +35,10 @@ class Factory
 
   def new_buffer(buf, str, created_at = 0)
     b   = @buffers[buf] if buf.is_a?(Fixnum)
-    b ||= @buffers.find {|b| b.name == buf }
+    b ||= @buffers.find { |b| b.name == buf }
 
     if !b
-      b = Buffer.new(@buffers.count,buf,str, created_at)
+      b = Buffer.new(@buffers.count, buf, str, created_at)
       @buffers << b
     end
 
@@ -46,14 +46,14 @@ class Factory
   end
 
   def list_buffers
-    @buffers.collect{|buf|
+    @buffers.collect { |buf|
       [buf.buffer_id, buf.name].join(' ')
     }.join("\n")
   end
 
   def store_buffers
     puts 'Storing buffers'
-    FileWriter.write(@bufstore,JSON.generate(buffers.map(&:as_json)))
+    FileWriter.write(@bufstore, JSON.generate(buffers.map(&:as_json)))
     puts 'Stored.'
   end
 end

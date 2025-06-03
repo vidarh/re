@@ -17,7 +17,7 @@ include EditorCore
 class Editor < EditorCore::Core
   include Search
 
-  attr_reader :lastcmd, :message, :mode, :search, :mark, :view, :ctrl,:model
+  attr_reader :lastcmd, :message, :mode, :search, :mark, :view, :ctrl, :model
   attr_reader :blank_buffer, :line_sep, :filename, :config, :debug_buffer
   attr_writer :message
 
@@ -25,12 +25,13 @@ class Editor < EditorCore::Core
 
   def possibly_intercept(buffer)
     return nil if buffer.nil?
+
     intercept ? BufferIntercept.new(buffer) : buffer
   end
 
-  def open_buffer(filename,data)
+  def open_buffer(filename, data)
     @line_sep = data["\r\n"] || "\n" # FIXME: Should be property of Buffer
-    @buffer   = possibly_intercept(@factory.open(filename,data, DateTime.now))
+    @buffer   = possibly_intercept(@factory.open(filename, data, DateTime.now))
     init_buffer
   end
 
@@ -70,7 +71,7 @@ class Editor < EditorCore::Core
 
   def init_buffer
     @do_refresh = true
-    @buffer.add_observer(self,:update)
+    @buffer.add_observer(self, :update)
     @cursor   = Cursor.new
     @filename = @buffer.name
 
@@ -92,6 +93,7 @@ class Editor < EditorCore::Core
 
   def changed_on_disk?
     return false if !File.exist?(@filename)
+
     mtime = File.mtime(@filename).to_datetime
     t = [@buffer.created_at, mtime, @buffer.created_at.to_i, mtime.to_i, @buffer.created_at.class, mtime.class]
     $log.debug("changed_on_disk?(#{@filename}): #{t}")
@@ -99,16 +101,17 @@ class Editor < EditorCore::Core
   end
 
   #
-  #FIXME: Refactor out
+  # FIXME: Refactor out
   #
   def filename_or_url_at_cursor
     line = buffer.lines(cursor.row)
     fname, type = detect_file_or_url(line, cursor.col)
     @message = "#{fname} / #{type}"
     return if !fname
+
     if type == :file
       path = File.dirname(self.filename)
-      return path+'/'+fname.to_s, :file
+      return path + '/' + fname.to_s, :file
     end
     return fname, type
   end
@@ -121,6 +124,7 @@ class Editor < EditorCore::Core
   def open_previous
     prev = @prevfile
     return if !prev
+
     c = @prevcursor
     @prevfile = self.filename
     @prevcursor = self.cursor
@@ -140,7 +144,7 @@ class Editor < EditorCore::Core
     return url_open(f) if type == :url
 
     if File.directory?(f)
-      if File.exists?(f+'.md')
+      if File.exists?(f + '.md')
         f += '.md'
       else
         f += '/index.md'
@@ -148,7 +152,7 @@ class Editor < EditorCore::Core
     end
 
     if !File.exists?(f)
-      if[-3..-1] != '.md'
+      if [-3..-1] != '.md'
         f += '.md'
       end
     end
@@ -163,7 +167,7 @@ class Editor < EditorCore::Core
     filename, row, data = get_file_data(fname)
     if data
       @filename = filename
-      open_buffer(File.expand_path(@filename),data)
+      open_buffer(File.expand_path(@filename), data)
       reset_screen
       goto_line(row.to_i) if row
     end
@@ -172,9 +176,10 @@ class Editor < EditorCore::Core
   def get_file_data(fname = nil)
     fname ||= @helpers.select_file
     return nil if fname == '' || fname.nil?
+
     fname = fname.strip
-    filename,row = fname.split(':')
-    data      = @factory.read_file_data(filename)
+    filename, row = fname.split(':')
+    data = @factory.read_file_data(filename)
     return filename, row, data
   rescue Errno::EISDIR
     Dir.chdir(fname)
@@ -195,7 +200,7 @@ class Editor < EditorCore::Core
     down # Skip past if we're *at* a header.
     while !(current_line =~ /^[ \t]*#+ /)
       down
-      break if buffer.lines_count <= cursor.row+1
+      break if buffer.lines_count <= cursor.row + 1
     end
     # FIXME: Why does this not work to scroll the buffer,
     # and leave the cursor higher up on screen?
@@ -215,7 +220,6 @@ class Editor < EditorCore::Core
     end
   end
 
-
   def help
     @helpers.open_new_window(File.expand_path("#{__FILE__}/../help.md"))
   end
@@ -234,6 +238,7 @@ class Editor < EditorCore::Core
     @filename = nil
 
     raise 'Requires a factory' if !factory
+
     @factory  = BufferFactory.new(factory)
 
     @headless = headless
@@ -245,14 +250,14 @@ class Editor < EditorCore::Core
 
     @paste_mode = false
 
-    @buffer   = possibly_intercept(buffer)
+    @buffer = possibly_intercept(buffer)
     if @buffer
       init_buffer
     else
       if filename
         open(filename)
       else
-        open_buffer('(*scratch*)','')
+        open_buffer('(*scratch*)', '')
       end
     end
 
@@ -268,7 +273,7 @@ class Editor < EditorCore::Core
   end
 
   def log *data
-    @log ||= Logger.new(File.open(File.expand_path('~/.re-log.txt'),'a+'))
+    @log ||= Logger.new(File.open(File.expand_path('~/.re-log.txt'), 'a+'))
     @log.debug(data.join(' '))
   end
 
@@ -307,7 +312,7 @@ class Editor < EditorCore::Core
         end
       end
     end
-    #@view.reset!
+    # @view.reset!
   end
 
   def run
@@ -344,7 +349,7 @@ class Editor < EditorCore::Core
   end
 
   def prompt(str = '')
-    STDOUT.puts ANSI.move_cursor(@view.height-2,0)
+    STDOUT.puts ANSI.move_cursor(@view.height - 2, 0)
     STDOUT.print ANSI.el
     STDOUT.print str
     STDOUT.flush
@@ -353,6 +358,7 @@ class Editor < EditorCore::Core
   def switch_buffer
     sel = @helpers.select_buffer
     return if sel.empty?
+
     if b = @factory.get_buffer(sel.to_i)
       @buffer = b
       init_buffer
@@ -366,21 +372,21 @@ class Editor < EditorCore::Core
     when 0, 32 # 32 on subsequent move
       # Left button
       if x > @view.text_xoff
-#        move(y+view.top-1, x-view.text_xoff+view.xoff-1)
-        @cursor = @cursor.move(@buffer, y+@view.top-2, x-@view.text_xoff+@view.xoff-1)
+        #        move(y+view.top-1, x-view.text_xoff+view.xoff-1)
+        @cursor = @cursor.move(@buffer, y + @view.top - 2, x - @view.text_xoff + @view.xoff - 1)
       end
     when 1 # Middle button
-      @message='1'
+      @message = '1'
     when 2 # Right button
-      @message='2'
+      @message = '2'
     when 64 # Scroll wheel up
       view_up(2)
-      @do_refresh=true
+      @do_refresh = true
     when 65 # Scroll wheel down
       view_down(2)
-      @do_refresh=true
+      @do_refresh = true
     else
-      @message=action.to_s
+      @message = action.to_s
     end
   end
 
@@ -390,7 +396,7 @@ class Editor < EditorCore::Core
 
   def goto_line(num = nil)
     if num.nil?
-      numstr = gets('Line: ') do |str,ch|
+      numstr = gets('Line: ') do |str, ch|
         '0123456789'.include?(ch[0])
       end
 
@@ -398,7 +404,7 @@ class Editor < EditorCore::Core
     end
 
     if !num.nil?
-      move(num-1, cursor.col)
+      move(num - 1, cursor.col)
       # FIXME: How do I adjust the view so this ends
       # up more in the middle? Seems like view_down() should
       # do this, but view_down also shifts the cursor?
@@ -411,7 +417,7 @@ class Editor < EditorCore::Core
     goto_line(section) if section
   end
 
-  def select_theme(theme=nil)
+  def select_theme(theme = nil)
     theme ||= @helpers.select_syntax_theme
     if theme && !theme.empty?
       @chosentheme = theme # Persist across open
@@ -438,24 +444,24 @@ class Editor < EditorCore::Core
   end
 
   def kill
-    @yank_cursor ||= Cursor.new(0,0)
+    @yank_cursor ||= Cursor.new(0, 0)
     if @yank_mark != cursor
-      @yank_buffer.replace_contents(cursor,'')
-      @yank_cursor = Cursor.new(0,0)
+      @yank_buffer.replace_contents(cursor, '')
+      @yank_cursor = Cursor.new(0, 0)
     end
     if @cursor.col >= @buffer.lines(@cursor.row).length
       @yank_buffer.break_line(@yank_cursor)
       @yank_cursor = @yank_cursor.enter(@yank_buffer)
-      #$log.debug("History before join line: #{@buffer.history.inspect}")
+      # $log.debug("History before join line: #{@buffer.history.inspect}")
       join_line
-      #$log.debug("History after join line: #{@buffer.history.inspect}")
+      # $log.debug("History after join line: #{@buffer.history.inspect}")
     else
       str = get_after
       @yank_buffer.insert(@yank_cursor, str)
       @yank_cursor = @yank_cursor.line_end(@yank_buffer)
-      #$log.debug("History before delete after: #{@buffer.history.inspect}")
+      # $log.debug("History before delete after: #{@buffer.history.inspect}")
       delete_after
-      #$log.debug("History after delete after: #{@buffer.history.inspect}")
+      # $log.debug("History after delete after: #{@buffer.history.inspect}")
     end
     @yank_mark = @cursor
   end
@@ -483,20 +489,22 @@ class Editor < EditorCore::Core
 
   def get_indent(row)
     return 0 if row < 0
+
     last_line = @buffer.lines(row)
     pos = 0
-    while(last_line[pos] == ' ')
+    while (last_line[pos] == ' ')
       pos += 1
     end
     return nil if pos == last_line.length
+
     pos
   end
 
   def determine_indent(row, soft: false)
     off = -1
-    until pos = get_indent(row+off) do; off -= 1; end
+    until pos = get_indent(row + off) do; off -= 1; end
 
-    prev = @buffer.lines(row+off)
+    prev = @buffer.lines(row + off)
     cur  = @buffer.lines(row)
     calc_indent(pos, prev, cur, soft: soft)
   end
@@ -504,8 +512,8 @@ class Editor < EditorCore::Core
   def indent(soft: false)
     row = @cursor.row
     pos = determine_indent(row, soft: soft)
-    @buffer.indent(cursor,row,pos)
-    @cursor = Cursor.new(row,pos).clamp(@buffer)
+    @buffer.indent(cursor, row, pos)
+    @cursor = Cursor.new(row, pos).clamp(@buffer)
   end
 
   def handle_input
@@ -547,21 +555,22 @@ class Editor < EditorCore::Core
   end
 
   def save
- #   begin
-      FileWriter.write(filename, data)
-      @buffer.created_at = File.mtime(filename).to_i + 1
-      @message = "#{filename} saved"
-#    rescue Exception => e
-#      @message = "Error saving #{filename}: #{e.message}"
-#      @message = e.backtrace.join(",")
-#   end
+    #   begin
+    FileWriter.write(filename, data)
+    @buffer.created_at = File.mtime(filename).to_i + 1
+    @message = "#{filename} saved"
+    #    rescue Exception => e
+    #      @message = "Error saving #{filename}: #{e.message}"
+    #      @message = e.backtrace.join(",")
+    #   end
   end
 
   def insert_prefix
     r = cursor.row
     c = cursor.col
     return if r < 1
-    prev = @buffer.lines(r-1)
+
+    prev = @buffer.lines(r - 1)
     if ch = @mode&.should_insert_prefix(c, prev)
       char(ch)
     end
@@ -594,17 +603,19 @@ class Editor < EditorCore::Core
 
   def history_undo
     return unless @buffer.can_undo?
+
     @cursor = @buffer.undo(cursor)
   end
 
   def history_redo
     return unless @buffer.can_redo?
+
     @cursor = @buffer.redo
   end
 
   def cursor_at_soft_break?
     @view.opts[:max_line_length] &&
-    cursor.col >= @view.opts[:max_line_length]
+      cursor.col >= @view.opts[:max_line_length]
   end
 
   def char(ch)
@@ -625,12 +636,13 @@ class Editor < EditorCore::Core
     if cursor_at_soft_break?
       break_line
     end
-    @do_refresh=true
+    @do_refresh = true
     right(ch.size)
   end
 
   def reset_screen
     return if @headless
+
     IO.console.raw do
       @view.reset_screen
     end
@@ -639,9 +651,9 @@ class Editor < EditorCore::Core
 
   def reload
     @factory.reload(@buffer, cursor)
-    ##if changed_on_disk?
+    # #if changed_on_disk?
     #  pry
-    #end
+    # end
     @line_sep = "\n"
     @cursor = cursor.clamp(@buffer)
     @message = "Reloaded #{filename}"
@@ -650,7 +662,7 @@ class Editor < EditorCore::Core
 
   def suspend
     @ctrl.suspend do
-      puts ANSI.move_cursor(@view.height-2,0)
+      puts ANSI.move_cursor(@view.height - 2, 0)
     end
   end
 
@@ -674,11 +686,11 @@ class Editor < EditorCore::Core
     toggle_highlight
   end
 
-  def pry(e=nil)
+  def pry(e = nil)
     require 'pry'
 
     @ctrl.pause do
-      #puts ANSI.cls
+      # puts ANSI.cls
       binding.pry
     end
     reset_screen

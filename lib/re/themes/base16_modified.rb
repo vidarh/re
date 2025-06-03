@@ -1,4 +1,3 @@
-
 module Rouge
   module Themes
     class Modified < Base16

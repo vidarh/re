@@ -2,7 +2,7 @@
 
 class KeyBindings
   def self.load_map(name)
-    TomlRB.load_file(File.expand_path(name),symbolize_keys: true)
+    TomlRB.load_file(File.expand_path(name), symbolize_keys: true)
   end
 
   def self.user_map
@@ -12,11 +12,11 @@ class KeyBindings
   end
 
   def self.global_map
-    load_map(File.dirname(__FILE__)+'/keymap.toml')
+    load_map(File.dirname(__FILE__) + '/keymap.toml')
   end
 
-  global_keys = global_map #rescue {keys: {}}
-  user_keys = user_map || {} #rescue {keys: {}}
+  global_keys = global_map # rescue {keys: {}}
+  user_keys = user_map || {} # rescue {keys: {}}
 
   @@map = global_keys[:keys].merge(user_keys[:keys] || {})
 

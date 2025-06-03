@@ -1,4 +1,3 @@
-
 # # Helper program integration
 #
 # A principle of Re is to rely on helpers for as many things
@@ -30,18 +29,17 @@ class HelperRegistry
   # unless you clear out as much as possible
   def start(cmd)
     dir =
-    spawn(
-      { 'HOME' => ENV['HOME'],
-      'DISPLAY' => ENV['DISPLAY'],
-      'LANG' => ENV['LANG'],
-      'PATH' => ENV['PATH']
-      },
-      cmd,
-      {
-        unsetenv_others: true,
-        chdir: File.expand_path('~')
-      }
-    )
+      spawn(
+        { 'HOME' => ENV['HOME'],
+          'DISPLAY' => ENV['DISPLAY'],
+          'LANG' => ENV['LANG'],
+          'PATH' => ENV['PATH'] },
+        cmd,
+        {
+          unsetenv_others: true,
+          chdir: File.expand_path('~')
+        }
+      )
   end
 
   def select_section(buffer)
@@ -87,6 +85,7 @@ class HelperRegistry
   end
 
   private
+
   def bufferarg(buffer)
     if buffer.is_a?(Integer)
       buffer = "--buffer #{buffer}"

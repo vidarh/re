@@ -34,14 +34,15 @@ class ViewModel
     @editor.cursor.row
   end
 
-  def cursor_x(row,col)
+  def cursor_x(row, col)
     return 0 if col < 1
+
     l = @editor.buffer.lines(row)
     pos = 0
-    (0..(col-1)).each do |i|
+    (0..(col - 1)).each do |i|
       if l[i].to_s == "\t"
         @editor.message = i.to_s
-        pos += 4-(pos % 4)
+        pos += 4 - (pos % 4)
       else
         pos += 1
       end
@@ -55,19 +56,21 @@ class ViewModel
     r = old.row
     l = @editor.view.update_line(r)
     return old if !l
+
     if l[c].to_s == TABCHAR
       c += 1
       max = c + (4 - c % 4)
       while l[c].to_s == TABCHAR and c <= max
         c += 1
       end
-      return Cursor.new(r,c)
+      return Cursor.new(r, c)
     else
       if c >= l.length
-        return old if r+1 >= buffer.lines_count
-        Cursor.new(r+1,0)
+        return old if r + 1 >= buffer.lines_count
+
+        Cursor.new(r + 1, 0)
       else
-        return Cursor.new(r,c+offset)
+        return Cursor.new(r, c + offset)
       end
     end
   end
@@ -88,6 +91,7 @@ class ViewModel
     end
 
     return c if row == 0
+
     Cursor.new(row - 1, buffer.line_length(row - 1))
   end
 end

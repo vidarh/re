@@ -9,9 +9,9 @@ class MyMarkdown < Rouge::LayeredLexer
 
   def initialize(opts = {})
     super(opts.merge({
-            lexer: @@md.new,
-            sublexers: {'Text' => @@sp}
-            })
+                       lexer: @@md.new,
+                       sublexers: { 'Text' => @@sp }
+                     })
           )
   end
 
@@ -19,5 +19,3 @@ class MyMarkdown < Rouge::LayeredLexer
   aliases(*@@md.aliases)
   filenames(*@@md.filenames)
 end
-
-

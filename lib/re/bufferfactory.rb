@@ -1,7 +1,3 @@
-
-
-
-
 class BufferFactory
   def initialize server
     @server = server
@@ -24,16 +20,16 @@ class BufferFactory
     end
   end
 
-  def set_buffer_contents(buffer, cursor,data, created_at = Time.now)
-    #p [:replacing, buffer, created_at]
+  def set_buffer_contents(buffer, cursor, data, created_at = Time.now)
+    # p [:replacing, buffer, created_at]
     buffer.created_at = created_at
-    buffer.replace_contents(cursor,lines_from_data(data))
+    buffer.replace_contents(cursor, lines_from_data(data))
   end
 
-  def reload(buffer,cursor)
-    #p [:reloading, buffer]
+  def reload(buffer, cursor)
+    # p [:reloading, buffer]
     data = read_file_data(buffer.name)
-    set_buffer_contents(buffer,cursor,data, DateTime.now)
+    set_buffer_contents(buffer, cursor, data, DateTime.now)
   end
 
   def get_buffer(buf)
@@ -47,10 +43,9 @@ class BufferFactory
     buffer = @server.new_buffer(filename, data, created_at)
 
     if base == 'buffer-list'
-      set_buffer_contents(buffer,Cursor.new(0,0), @server.list_buffers)
+      set_buffer_contents(buffer, Cursor.new(0, 0), @server.list_buffers)
     end
 
     buffer
   end
-
 end

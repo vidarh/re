@@ -2,8 +2,8 @@
 # Spawning and connecting to the DRb service
 #
 
-$uripath="#{ENV["HOME"]}/.re"
-$uri="drbunix:#{$uripath}"
+$uripath = "#{ENV["HOME"]}/.re"
+$uri = "drbunix:#{$uripath}"
 
 def connect_to_server = DRbObject.new_with_uri($uri)
 
@@ -59,16 +59,15 @@ def start_service
 end
 
 def start_server(foreground: false)
-
   if !foreground
     pid = fork do
       IO.new(0).close
       IO.new(1).close
       IO.new(2).close
 
-      STDIN.reopen('/dev/null','r')
-      STDOUT.reopen('/dev/null','a')
-      STDERR.reopen('/dev/null','a')
+      STDIN.reopen('/dev/null', 'r')
+      STDOUT.reopen('/dev/null', 'a')
+      STDERR.reopen('/dev/null', 'a')
       $stdin = STDIN
       $stdout = STDOUT
       $stderr = STDERR
@@ -81,4 +80,3 @@ def start_server(foreground: false)
     start_service
   end
 end
-

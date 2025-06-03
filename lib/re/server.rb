@@ -1,4 +1,3 @@
-
 require_relative 'service'
 
 module EditorCore
@@ -26,7 +25,7 @@ class Factory
     puts "Loading buffers from #{@bufstore}"
 
     begin
-      File.open(@bufstore,'r') do |f|
+      File.open(@bufstore, 'r') do |f|
         @buffers = JSON.load(f)
       end
     rescue Exception => e
@@ -34,7 +33,7 @@ class Factory
     end
 
     @buffers ||= []
-    @buffers.each_with_index do |buf,id|
+    @buffers.each_with_index do |buf, id|
       buf.buffer_id = id
     end
   end
@@ -44,7 +43,7 @@ class Factory
   def find_buffer(buf)
     p [:find_buffer, buf]
     b   = @buffers[buf] if buf.is_a?(Fixnum)
-    b ||= @buffers.compact.find {|b| b.name == buf }
+    b ||= @buffers.compact.find { |b| b.name == buf }
     b
   end
 
@@ -64,7 +63,7 @@ class Factory
     b = find_buffer(buf)
 
     if !b
-      b = Buffer.new(@buffers.count,buf,str, created_at)
+      b = Buffer.new(@buffers.count, buf, str, created_at)
       @buffers << b
     end
 
@@ -72,7 +71,7 @@ class Factory
   end
 
   def list_buffers
-    @buffers.compact.collect{|buf|
+    @buffers.compact.collect { |buf|
       [buf.buffer_id, buf.name].join(' ')
     }.join("\n")
   end
@@ -80,7 +79,7 @@ class Factory
   def store_buffers
     puts 'Storing buffers'
 
-    FileWriter.write(@bufstore,JSON.generate(buffers.compact.map(&:as_json)))
+    FileWriter.write(@bufstore, JSON.generate(buffers.compact.map(&:as_json)))
     puts 'Stored.'
   end
 end

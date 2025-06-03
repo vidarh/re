@@ -4,7 +4,6 @@
 
 module Rouge
   class Lexer
-
     def serialize
       nil
     end
@@ -16,7 +15,7 @@ module Rouge
 
   class RegexLexer < Lexer
     def serialize
-      stack.map{|s| s.name}[1..-1] # elide the root state
+      stack.map { |s| s.name }[1..-1] # elide the root state
     end
 
     def deserialize(states)
@@ -27,4 +26,3 @@ module Rouge
     end
   end
 end
-
