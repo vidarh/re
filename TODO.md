@@ -3,8 +3,14 @@
 
 ## Specific bugs
 
- * During search, text after a mark is unstyled.
-
+ * @RE (A) Styling breaks completely when starting a double quote
+ * @RE (A) Styling broken by double-quote fails to correct itself
+   when quote is deleted.
+ * @RE (B) Trying to open file in non-existent directory fails.
+ * @RE (B) Inserts underline as first character when '#' appears
+   somewhere
+ * @RE (B) Should auto-indent in markdown lists on line wrap
+ 
 ## Conceptual
 
  * Editor should not work on buffers, but on
@@ -18,8 +24,6 @@
  * Mini menu/help buffer w/context. E.g. Start
    a Macro, see macro shortcuts
  * Tab handling (or lack thereof)
- * Ability to list buffers from editor.
- * Ability to kill buffers from cli
  * Ability to kill buffers from editor
 
 ## Filesystem handling
@@ -28,13 +32,10 @@
    a buffer.
  * Consider like emacs to not write backups if
    source controlled file?
- * Warn about files changed on disk
- * Offer to reload file if file changed on disk
  * File locking
 
 ## Rendering
 
- * Ability to toggle line counts on/off
  * Fix issue with assembly output (compiler) -- Is that down
    down to tabs?
  * A "virtual terminal" Ruby class to handle views that does
@@ -43,14 +44,12 @@
 
 ## Shared editing
 
- * Add ability to connect to a parent-instance to share buffers across views
  * Add support for locking of files.
  * Add support for synchronized editing of files.
 
 ## Automation
 
  * "Arexx" like port (using Drb?)
- * Macros
 
 ## Cleanups
 
