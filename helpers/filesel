@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require 'shellwords'
+
+dir = Dir.pwd
+find='find * -maxdepth 0'
+
+def sel(dir)
+  if `which rofi`.chomp.length > 0
+    "rofi 2>/dev/null -dmenu -p #{dir.shellescape}"
+  elsif `which fzf`.chomp.length > 0
+    "~/.fzf/bin/fzf --no-sort --header=#{dir.shellescape} --prompt='Select file>'"
+  else
+    puts "ERROR: Please install 'rofi' or 'fzf'"
+    exit(1)
+  end
+end
+
+while (f = `cd #{dir.shellescape} && (echo '..' ; #{find}) | grep -ve '[#|~]' | #{sel(dir)}`.chomp) && File.directory?("#{dir}/#{f}")
+  break if f == ""
+  dir = File.expand_path("#{dir}/#{f}")
+end
+
+if f != ""
+  puts File.expand_path("#{dir}/#{f}")
+end

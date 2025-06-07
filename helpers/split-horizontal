@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+cmd = ARGV.join(" ")
+#case ENV["DESKTOP_SESSION"]
+#when "bspwm"
+  system("/bin/sh -c 'bspc node -p east ; exec #{cmd}' &")
+#else
+#  system("i3-msg 'split horizontal; exec #{cmd}'")
+#end

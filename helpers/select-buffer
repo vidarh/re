@@ -1,0 +1,3 @@
+#!/bin/sh
+
+re --list-buffers | rofi 2>/dev/null -dmenu -filter `pwd`/ -p "buffer"

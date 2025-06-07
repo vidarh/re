@@ -1,0 +1,3 @@
+#!/bin/sh
+
+e --get --buffer $1 | grep -n -e '^# ' |  rofi 2>/dev/null -dmenu -p "buffer"

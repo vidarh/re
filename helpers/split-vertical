@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+cmd = ARGV.join(" ")
+system("sh -c 'bspc node -p south ; exec #{cmd}' &")
+#  system("i3-msg 'split vertical; exec #{cmd}'")

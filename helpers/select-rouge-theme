@@ -1,0 +1,3 @@
+#!/bin/bash -l
+
+re 2>/dev/null --list-themes | rofi 2>/dev/null -dmenu -theme
