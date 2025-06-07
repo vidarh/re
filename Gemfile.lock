@@ -1,58 +1,59 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    ansiterm (0.4.2)
+    ansiterm (0.4.3)
+    base64 (0.3.0)
     citrus (3.0.2)
     coderay (1.1.3)
-    editor_core (0.3.0)
+    editor_core (0.3.2)
     editorconfig (0.2.2)
     file_writer (0.2.0)
     gitattributes (2.9.0)
-    keyboard_map (0.2.0)
-    kramdown (2.4.0)
-      rexml
-    method_source (1.0.0)
-    mini_portile2 (2.8.0)
-    nokogiri (1.13.10)
-      mini_portile2 (~> 2.8.0)
+    keyboard_map (0.2.3)
+    method_source (1.1.0)
+    mini_portile2 (2.8.9)
+    nokogiri (1.18.8)
+      mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
     object_tracker (2.1.2)
-    pry (0.14.1)
+    pry (0.15.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
-    racc (1.6.1)
-    rb-readline (0.5.5)
-    rexml (3.2.5)
-    rouge (4.0.0)
-    ruby-prof (1.4.3)
-    slop (4.9.3)
-    termcontroller (0.3)
+    racc (1.8.1)
+    rouge (4.5.2)
+    rouge-gtk_theme_loader (0.3.2)
+      rouge (> 4.0)
+    ruby-prof (1.7.2)
+      base64
+    slop (4.10.1)
+    termcontroller (0.5)
       keyboard_map (>= 0.1.3)
-    toml-rb (2.2.0)
+    toml-rb (4.0.0)
       citrus (~> 3.0, > 3.0)
+      racc (~> 1.7)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  ansiterm
-  editor_core
+  ansiterm (>= 0.4.3)
+  editor_core (>= 0.3.2)
   editorconfig
   file_writer (~> 0.2.0)
   gitattributes
-  kramdown
+  keyboard_map
   nokogiri
   object_tracker (~> 2.1)
   pry
-  rb-readline
   rouge
+  rouge-gtk_theme_loader (>= 0.3.2)
   ruby-prof
   slop
-  termcontroller (~> 0.3)
+  termcontroller (>= 0.5)
   toml-rb
 
 RUBY VERSION
-   ruby 2.7.2p137
+   ruby 3.2.2p53
 
 BUNDLED WITH
-   2.1.4
+   2.4.19
