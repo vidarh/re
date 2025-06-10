@@ -69,7 +69,7 @@ class HelperRegistry
   end
 
   def split_vertical(buffer)
-    system("split-vertical 2>>/tmp/relog.txt term e #{bufferarg(buffer)}")
+    system("split-vertical 2>>/tmp/relog.txt term re #{bufferarg(buffer)}")
   end
 
   def split_vertical_term
@@ -77,7 +77,7 @@ class HelperRegistry
   end
 
   def split_horizontal(buffer_id)
-    system("split-horizontal 2>>/tmp/relog.txt term e --buffer #{buffer_id}")
+    system("split-horizontal 2>>/tmp/relog.txt term re --buffer #{buffer_id}")
   end
 
   def split_horizontal_term(cmd = '')
